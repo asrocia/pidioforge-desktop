@@ -8,9 +8,9 @@ export class HttpError extends Error {
 export function createHttpUtils({ allowedOrigin, maxBodyBytes }) {
   function corsHeaders(req = null) {
     const origin = req?.headers?.origin || allowedOrigin;
-    const allowed = new Set([allowedOrigin, 'http://127.0.0.1:1420', 'http://localhost:1420']);
+    const allowed = new Set([allowedOrigin, 'http://127.0.0.1:1420', 'http://localhost:1420', 'file://', 'null']);
     return {
-      'access-control-allow-origin': allowed.has(origin) ? origin : allowedOrigin,
+      'access-control-allow-origin': (allowed.has(origin) || origin === 'null' || !origin) ? '*' : allowedOrigin,
       'access-control-allow-methods': 'GET,POST,PUT,DELETE,OPTIONS',
       'access-control-allow-headers': 'content-type',
     };
