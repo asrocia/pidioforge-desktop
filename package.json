@@ -1,0 +1,105 @@
+{
+  "name": "pidioforge-desktop-fullstack",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Ppjayabaru",
+  "description": "Aplikasi desktop Electron + React + API lokal untuk produksi video musik: auto lirik, spectrum, branding, overlay, audio mixing, dan batch render.",
+  "main": "electron/main.mjs",
+  "scripts": {
+    "dev": "node tools/dev.mjs",
+    "dev:api": "node backend/server.mjs",
+    "dev:web": "vite --host 127.0.0.1 --port 1420 frontend",
+    "electron:dev": "electron electron/main.mjs",
+    "electron:build": "npm run build:ready && electron-builder",
+    "preview:static": "node tools/static-preview.mjs",
+    "prepare:build": "node tools/prepare-build.mjs",
+    "build:web": "cd frontend && npm run build",
+    "build:ready": "npm run prepare:build && npm run build:web",
+    "typecheck": "tsc -p frontend/tsconfig.json --noEmit",
+    "smoke:render": "node tools/smoke-render.mjs",
+    "smoke:loop": "node tools/smoke-loop.mjs",
+    "smoke:api": "node tools/smoke-api.mjs",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"frontend/src/**/*.{ts,tsx}\" \"backend/**/*.mjs\" \"tools/**/*.mjs\" \"electron/**/*.{mjs,cjs}\"",
+    "format:check": "prettier --check \"frontend/src/**/*.{ts,tsx}\" \"backend/**/*.mjs\" \"tools/**/*.mjs\" \"electron/**/*.{mjs,cjs}\"",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.3",
+    "electron": "42.5.0",
+    "electron-builder": "26.15.3",
+    "eslint": "^10.6.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "husky": "^9.1.7",
+    "jsdom": "^29.1.1",
+    "lint-staged": "^17.0.8",
+    "prettier": "^3.9.4",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "typescript": "6.0.3",
+    "typescript-eslint": "^8.62.1",
+    "vite": "8.1.0",
+    "vitest": "^4.1.10"
+  },
+  "lint-staged": {
+    "frontend/src/**/*.{ts,tsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "backend/**/*.mjs": [
+      "prettier --write"
+    ],
+    "tools/**/*.mjs": [
+      "prettier --write"
+    ],
+    "electron/**/*.{mjs,cjs}": [
+      "prettier --write"
+    ]
+  },
+  "build": {
+    "appId": "com.ppjayabaru.pidioforge",
+    "productName": "PidioForge Desktop",
+    "npmRebuild": false,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "frontend/dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "electron/resources/backend",
+        "to": "backend"
+      },
+      {
+        "from": "electron/resources/bin",
+        "to": "bin"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "msi"
+      ],
+      "icon": "electron/icons/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.11.1",
+    "electron-updater": "^6.8.9"
+  }
+}

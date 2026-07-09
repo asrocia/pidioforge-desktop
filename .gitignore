@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-preview/
+release/
+out/
+
+# Logs
+*.log
+logs/
+
+# Runtime data
+.data/
+.tmp-smoke/
+.api-pid
+.api-job-id
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# FFmpeg binaries (too large for git, document manual install)
+backend/ffmpeg-*/
+
+# Python
+__pycache__/
+*.pyc
+
+# Temp
+*.tmp
+electron/resources/bin/

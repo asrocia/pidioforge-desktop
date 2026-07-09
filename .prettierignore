@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-preview/
+release/
+frontend/dist/
+*.log
+backend/ffmpeg-*/
+electron/resources/bin/
+package-lock.json
+frontend/package-lock.json

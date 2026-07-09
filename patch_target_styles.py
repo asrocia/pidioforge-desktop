@@ -1,0 +1,10 @@
+from pathlib import Path
+p=Path('/data/pidioforge-desktop/frontend/src/styles.css')
+s=p.read_text(encoding='utf-8')
+add=r'''
+.targetPanel{display:grid;gap:14px}.targetGroup{border:1px solid #2f3a48;background:#171d25;padding:12px 12px 10px}.targetGroup h3{margin:0 0 10px;color:#e7eef8;font-size:14px;letter-spacing:.04em;border-bottom:1px solid #2b3442;padding-bottom:8px}.targetActions{display:grid;grid-template-columns:210px 260px 1fr;gap:10px;align-items:center}.targetActions button{background:#13b75f}.targetActions button:nth-child(2){background:#ff980e}.targetActions button:disabled{opacity:.45;cursor:not-allowed}.targetSummary{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}.targetSummary div{background:#0e141b;border:1px solid #344051;text-align:center;padding:10px}.targetSummary b{display:block;font-size:18px;color:#31d87b}.targetSummary small{color:#aeb9ca}.pairList{display:grid;gap:7px;max-height:260px;overflow:auto}.pair{background:#10151c;border:1px solid #303947;padding:8px;display:grid;gap:3px}.pair b{color:#fff}.pair small{color:#aeb9ca;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.filterRow{display:flex;gap:6px;margin-bottom:8px}.filterRow button{background:#303846;padding:0 10px;min-height:24px}.fileTable{border:1px solid #303947;max-height:280px;overflow:auto}.fileRow{display:grid;grid-template-columns:64px 1fr 82px;gap:8px;align-items:center;padding:6px 8px;border-bottom:1px solid #26313e;font-size:12px}.fileRow span{color:#31d87b;text-transform:uppercase}.fileRow b{font-weight:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fileRow em{font-style:normal;color:#aeb9ca;text-align:right}.targetPanel .field{grid-template-columns:135px 1fr}.targetPanel .slider{grid-template-columns:135px 1fr 46px}@media(max-width:1250px){.targetActions{grid-template-columns:1fr}.targetSummary{grid-template-columns:repeat(3,1fr)}}
+'''
+if '.targetPanel' not in s:
+    s += '\n' + add
+p.write_text(s, encoding='utf-8')
+print('styles patched')

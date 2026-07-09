@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+@theme {
+  /* Background layers */
+  --color-ds-bg-base: #0b0e13;
+  --color-ds-bg-elevated: #0d1117;
+  --color-ds-bg-panel: #121821;
+  --color-ds-bg-panel-2: #1d2632;
+  --color-ds-bg-field: #070c12;
+  --color-ds-bg-hover: #1a2233;
+  --color-ds-bg-active: #253041;
+
+  /* Borders */
+  --color-ds-line: rgba(142, 162, 184, 0.18);
+  --color-ds-line-strong: rgba(142, 162, 184, 0.32);
+  --color-ds-line-focus: #4f8ef7;
+
+  /* Text */
+  --color-ds-text: #dce8ef;
+  --color-ds-muted: #8da0af;
+  --color-ds-title: #eef7f6;
+  --color-ds-subtle: #5e7080;
+
+  /* Semantic */
+  --color-ds-accent: #4f8ef7;
+  --color-ds-accent-hover: #3a7ae0;
+  --color-ds-success: #2dbb7f;
+  --color-ds-success-bg: #0d1c16;
+  --color-ds-teal: #62dbc1;
+  --color-ds-warn: #d9a65f;
+  --color-ds-warn-bg: #1a1509;
+  --color-ds-danger: #e76d78;
+  --color-ds-danger-bg: #1a0f11;
+  --color-ds-purple: #7d52d9;
+  --color-ds-purple-bg: #1a1421;
+
+  /* Typography */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+
+  /* Spacing scale */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+  /* Transitions */
+  --transition-fast: 120ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
+
+  /* Minimum readable font sizes */
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-lg: 14px;
+  --text-xl: 16px;
+}
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    color: var(--color-ds-text);
+    background: var(--color-ds-bg-base);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(142, 162, 184, 0.2);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(142, 162, 184, 0.35);
+  }
+
+  /* Focus ring */
+  :focus-visible {
+    outline: 2px solid var(--color-ds-accent);
+    outline-offset: 2px;
+  }
+
+  /* Transitions on interactive elements */
+  button, a, input, select, textarea {
+    transition: border-color var(--transition-fast),
+                background-color var(--transition-fast),
+                box-shadow var(--transition-fast),
+                opacity var(--transition-fast);
+  }
+
+  /* Disabled state */
+  button:disabled, input:disabled, select:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+@layer utilities {
+  /* Panel transition for workspace open/close */
+  .panel-slide {
+    transition: transform var(--transition-slow), opacity var(--transition-normal);
+  }
+
+  /* Skeleton loading animation */
+  .skeleton {
+    background: linear-gradient(90deg, var(--color-ds-bg-panel) 25%, var(--color-ds-bg-panel-2) 50%, var(--color-ds-bg-panel) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes skeleton-pulse {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Spinner for loading buttons */
+  .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--color-ds-line-strong);
+    border-top-color: var(--color-ds-accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Toast notification animation */
+  .toast-enter {
+    animation: toast-in var(--transition-slow) ease forwards;
+  }
+
+  @keyframes toast-in {
+    from { transform: translateY(-8px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+}
