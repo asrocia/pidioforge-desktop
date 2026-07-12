@@ -1,80 +1,36 @@
 # PidioForge Desktop
 
-Aplikasi desktop Windows untuk produksi video musik otomatis. Dibangun dengan **Electron + React + Vite + TailwindCSS v4** (frontend) dan **Node.js API lokal + FFmpeg** (backend).
+Desktop video production workspace for Windows. PidioForge combines Electron, React, Vite, a local Node.js API, SQLite render history, and FFmpeg media processing.
 
-## Fitur
+## Highlights
 
-### Produksi Video
-- **Sumber & Engine** — pilih visual, audio, output, mode render, resolusi, bitrate, batch
-- **Branding** — logo overlay, bumper video, CTA greenscreen, watermark teks
-- **Audio & Mixing** — volume, normalize, EQ, compressor, fade, ducking, beat detection
-- **Lirik Otomatis** — parse LRC/SRT, auto-align timing, beat snap, karaoke mode
-- **Spektrum & Now Playing** — bar/wave/line visualizer, progress bar, now playing text
-- **Overlay** — particle, timestamp, lower third, vignette, film grain, scanlines
-- **Queue & Batch Render** — antrian job, concurrency, auto-optimize performa
-- **Seamless Looping** — video pendek jadi panjang, crossfade, ping-pong
+- Video, image, audio, batch, and queue rendering
+- Automatic lyrics from LRC/SRT with alignment and karaoke modes
+- Spectrum, progress, now-playing, particles, branding, CTA, and lower-third overlays
+- Audio mixing, normalization, EQ, compression, fades, ducking, and beat detection
+- Project tabs, templates, import/export, undo/redo, thumbnails, history, and notifications
+- Seamless looping with crossfade and ping-pong modes
+- Offline local API at `http://127.0.0.1:8787`
 
-### Workspace
-- **Multi-Project Tabs** — switch, rename, duplicate, delete projects
-- **Template System** — simpan/apply config subset
-- **Export/Import** — share project sebagai file .pidioforge
-- **Undo/Redo** — Ctrl+Z / Ctrl+Y
-- **Collapsible Sidebar** — toggle expand/collapse
-- **Drag-Reorder Queue** — geser job di antrian
-- **Thumbnail Generator** — auto-extract best frame
-- **Render History** — SQLite tracking (durasi, size, status)
-- **Desktop Notifications** — alert saat render selesai/gagal
-- **Auto-Update** — cek dan install update otomatis
+## Architecture
 
-## Struktur Proyek
-
-```
-pidioforge-desktop/
-├── backend/                 # API lokal Node.js (modular ESM)
-│   ├── server.mjs           # Entry point (30 lines)
-│   ├── routes.mjs           # Route handler
-│   ├── config.mjs           # Default config & presets
-│   ├── state.mjs            # State persistence (JSON)
-│   ├── history.mjs          # Render history (SQLite)
-│   ├── render-engine.mjs    # FFmpeg render wrapper
-│   ├── loop-engine.mjs      # Seamless loop video
-│   ├── audio-engine.mjs     # Loudness, waveform, beats
-│   ├── lyrics-engine.mjs    # Auto-align, export SRT/LRC/VTT
-│   ├── target-engine.mjs    # Validation, pairing, estimates
-│   ├── thumbnail-engine.mjs # Frame extraction
-│   └── ...                  # Other engine modules
-├── frontend/                # React + Vite + TailwindCSS v4
-│   ├── src/
-│   │   ├── main.tsx          # Entry point (8 lines)
-│   │   ├── App.tsx           # Main app component
-│   │   ├── components/
-│   │   │   ├── panels/       # 10 panel components
-│   │   │   ├── ui/           # Shared UI primitives
-│   │   │   ├── ErrorBoundary.tsx
-│   │   │   └── ProjectTabs.tsx
-│   │   ├── hooks/            # useUndoRedo
-│   │   ├── lib/              # api, config-path, format
-│   │   ├── utils/            # cn, media, format-presets
-│   │   └── types/            # TypeScript types
-│   └── vitest.config.ts
-├── electron/                # Electron main process
-│   ├── main.mjs             # Window, IPC, API lifecycle
-│   ├── updater.mjs          # Auto-update (electron-updater)
-│   └── preload.cjs          # Context bridge
-├── tools/                   # Dev scripts
-├── .github/workflows/       # CI: lint, typecheck, test, build
-├── eslint.config.mjs        # ESLint flat config
-└── .prettierrc              # Prettier config
+```text
+frontend/                  React + Vite UI
+backend/                   Local Node.js HTTP API and media engines
+electron/                  Electron main process, IPC, updater, packaged resources
+tools/                     Development, build, and smoke-test scripts
 ```
 
-## Setup Development
+Production builds copy backend runtime dependencies into `electron/resources/backend/vendor` and package them as `extraResources`. This keeps the API outside `app.asar`, where the spawned Node runtime can load backend files and FFmpeg binaries.
 
-### Prasyarat
+## Requirements
+
+- Windows 10 or newer
 - Node.js 20+
-- FFmpeg (tambahkan ke PATH)
-- Windows 10/11
+- FFmpeg and FFprobe on `PATH` for development
+- Windows build environment for native Electron dependencies
 
-### Install & Run
+## Development
 
 ```bash
 npm install
@@ -82,65 +38,119 @@ cd frontend && npm install && cd ..
 npm run dev
 ```
 
-### Scripts
+Useful commands:
 
-| Script | Deskripsi |
-|--------|-----------|
-| `npm run dev` | Jalankan API + frontend + Electron |
-| `npm run dev:api` | API saja (port 8787) |
-| `npm run dev:web` | Frontend saja (port 1420) |
-| `npm run lint` | ESLint check |
-| `npm run typecheck` | TypeScript check |
-| `cd frontend && npm test` | Vitest (31 tests) |
-| `npm run electron:build` | Build .exe installer |
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start API, Vite, and Electron |
+| `npm run dev:api` | Start local API only |
+| `npm run dev:web` | Start Vite only |
+| `npm run typecheck` | Run TypeScript validation |
+| `cd frontend && npm test -- --run` | Run frontend tests |
+| `npm run smoke:api` | Check API health and basic routes |
+| `npm run smoke:render` | Exercise render flow |
+| `npm run smoke:loop` | Exercise seamless-loop flow |
 
-### Build Production
+API default port: `8787`. Stop old PidioForge backend processes before restarting if logs show `EADDRINUSE`.
+
+## Production Installer
+
+Build NSIS and MSI installers:
 
 ```bash
-npm run prepare:build
 npm run electron:build
 ```
 
-Output installer di folder `release/`.
+Output:
 
-## API Lokal
+```text
+release/PidioForge Desktop Setup 1.0.0.exe
+release/PidioForge Desktop 1.0.0.msi
+```
 
-Base URL: `http://127.0.0.1:8787`
+`electron:build` first runs `rebuild:electron`. This rebuilds `better-sqlite3` for Electron `42.5.0`; skipping this step causes:
 
-| Endpoint | Method | Deskripsi |
-|----------|--------|-----------|
-| `/api/health` | GET | Status + FFmpeg info |
-| `/api/state` | GET | Full app state |
-| `/api/config` | GET/POST | Config project aktif |
-| `/api/projects` | GET/POST | CRUD projects |
+```text
+NODE_MODULE_VERSION 137 ... requires NODE_MODULE_VERSION 146
+```
+
+Install new builds after uninstalling older PidioForge versions. Do not reuse an old installer or old `win-unpacked` directory.
+
+## Backend Troubleshooting
+
+App status `Menghubungkan backend` means API health check failed. Check:
+
+```text
+%APPDATA%\pidioforge-desktop-fullstack\logs\api.out.log
+%APPDATA%\pidioforge-desktop-fullstack\logs\api.err.log
+```
+
+Expected health request:
+
+```text
+GET http://127.0.0.1:8787/api/health
+```
+
+Common errors:
+
+- `Cannot find module 'better-sqlite3'`: install current package build; old installer lacks vendored dependency.
+- `NODE_MODULE_VERSION 137 ... requires NODE_MODULE_VERSION 146`: rebuild with `npm run rebuild:electron` and rebuild installer.
+- `EADDRINUSE ... 127.0.0.1:8787`: stop stale PidioForge backend or restart Windows, then relaunch one app instance.
+
+## API Surface
+
+| Endpoint | Method | Purpose |
+| --- | --- | --- |
+| `/api/health` | GET | API and FFmpeg diagnostics |
+| `/api/state` | GET | Current app state |
+| `/api/config` | GET, POST | Active project configuration |
+| `/api/projects` | GET, POST | Project CRUD |
 | `/api/projects/:id/export` | GET | Export project |
 | `/api/projects/import` | POST | Import project |
-| `/api/templates` | GET/POST/DELETE | Template system |
-| `/api/jobs` | GET/POST | Queue jobs |
-| `/api/queue/start` | POST | Start render queue |
+| `/api/templates` | GET, POST, DELETE | Template management |
+| `/api/jobs` | GET, POST | Render jobs |
+| `/api/queue/start` | POST | Start queue |
 | `/api/history` | GET | Render history |
-| `/api/history/stats` | GET | Aggregate stats |
-| `/api/thumbnail/generate` | POST | Extract thumbnails |
+| `/api/history/stats` | GET | History statistics |
+| `/api/thumbnail/generate` | POST | Generate thumbnail |
 | `/api/preview/render` | POST | Render preview |
-| `/api/loop/start` | POST | Start loop render |
+| `/api/loop/start` | POST | Start loop job |
 | `/api/lyrics/auto-align` | POST | Align lyrics |
 
-## Tech Stack
+## Validation
 
-- **Frontend:** React 19, Vite 8, TailwindCSS v4, TypeScript 6
-- **Backend:** Node.js HTTP, better-sqlite3, FFmpeg
-- **Desktop:** Electron 42, electron-builder, electron-updater
-- **Testing:** Vitest, @testing-library/react (31 tests)
-- **Linting:** ESLint + Prettier + Husky + lint-staged
-- **CI/CD:** GitHub Actions
+Current release validation:
 
-## Keyboard Shortcuts
+- `npm run electron:build` — passed
+- `npm run typecheck` — passed
+- Frontend tests — 31 passed
+- Electron native dependency rebuild — passed
 
-| Shortcut | Aksi |
-|----------|------|
-| Ctrl+Z | Undo config |
-| Ctrl+Y | Redo config |
+## Technology
+
+- React 19, Vite 8, TailwindCSS 4, TypeScript 6
+- Node.js HTTP API, FFmpeg, better-sqlite3
+- Electron 42, electron-builder, electron-updater
+- Vitest, Testing Library, ESLint, Prettier, Husky
 
 ## License
 
-Private — by Ppjayabaru / Bangalimin
+Private — Ppjayabaru / Bangalimin
+
+## Release Notes
+
+### 1.0.0 installer reliability update
+
+- Fixed Electron IPC registration typo.
+- Fixed CommonJS loading for `electron-updater`.
+- Bundled backend runtime dependencies outside `app.asar`.
+- Rebuilt `better-sqlite3` for Electron 42 ABI.
+- Added backend startup diagnostics and bounded health readiness checks.
+- Fixed production CORS handling for packaged `file://` UI.
+- Fixed loop-job map propagation for seamless loop status and cancellation.
+
+Install latest generated installer after pulling this update.
+
+## Maintainers
+
+PidioForge Desktop — Ppjayabaru / Bangalimin

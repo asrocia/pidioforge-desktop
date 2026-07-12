@@ -1,5 +1,8 @@
-import { autoUpdater } from 'electron-updater';
+import { createRequire } from 'node:module';
 import { ipcMain } from 'electron';
+
+const require = createRequire(import.meta.url);
+const { autoUpdater } = require('electron-updater');
 
 let mainWindow = null;
 
@@ -13,7 +16,7 @@ export function setupAutoUpdater(win) {
     sendToRenderer('updater:status', { status: 'checking' });
   });
 
-  autoUpdater.on('update-available', (info) => {
+  autoUpdater.on('update-available', info => {
     sendToRenderer('updater:status', {
       status: 'available',
       version: info.version,
@@ -25,7 +28,7 @@ export function setupAutoUpdater(win) {
     sendToRenderer('updater:status', { status: 'up-to-date' });
   });
 
-  autoUpdater.on('download-progress', (progress) => {
+  autoUpdater.on('download-progress', progress => {
     sendToRenderer('updater:status', {
       status: 'downloading',
       percent: Math.round(progress.percent),
@@ -34,14 +37,14 @@ export function setupAutoUpdater(win) {
     });
   });
 
-  autoUpdater.on('update-downloaded', (info) => {
+  autoUpdater.on('update-downloaded', info => {
     sendToRenderer('updater:status', {
       status: 'ready',
       version: info.version,
     });
   });
 
-  autoUpdater.on('error', (err) => {
+  autoUpdater.on('error', err => {
     sendToRenderer('updater:status', {
       status: 'error',
       error: err?.message || 'Update check failed',

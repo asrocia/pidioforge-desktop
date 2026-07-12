@@ -1,5 +1,12 @@
-import Database from 'better-sqlite3';
+import { createRequire } from 'node:module';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const databasePackage =
+  process.env.PIDIOFORGE_SQLITE_PACKAGE ||
+  path.join(path.dirname(fileURLToPath(import.meta.url)), 'vendor', 'node_modules', 'better-sqlite3');
+const Database = require(databasePackage);
 import { mkdir } from 'node:fs/promises';
 import { workspaceDir } from './config.mjs';
 
@@ -51,7 +58,7 @@ export function recordRender(job) {
     job.config?.target?.resolution || '',
     job.startedAt || '',
     job.finishedAt || new Date().toISOString(),
-    Number(job.elapsedMs || job.elapsedSeconds ? (job.elapsedSeconds * 1000) : 0),
+    Number(job.elapsedMs || job.elapsedSeconds ? job.elapsedSeconds * 1000 : 0),
     JSON.stringify(job.config || {}),
     job.error || '',
   );
@@ -64,7 +71,9 @@ export function getHistory({ page = 1, limit = 20, status = '' } = {}) {
   const params = status ? [status] : [];
 
   const total = db.prepare(`SELECT COUNT(*) as count FROM renders ${where}`).get(...params)?.count || 0;
-  const items = db.prepare(`SELECT * FROM renders ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`).all(...params, limit, offset);
+  const items = db
+    .prepare(`SELECT * FROM renders ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`)
+    .all(...params, limit, offset);
 
   return { items, total, page, limit };
 }
@@ -72,7 +81,9 @@ export function getHistory({ page = 1, limit = 20, status = '' } = {}) {
 export function getHistoryStats() {
   if (!db) return { total: 0, done: 0, failed: 0, totalSize: 0, totalDuration: 0, avgElapsed: 0 };
 
-  const stats = db.prepare(`
+  const stats = db
+    .prepare(
+      `
     SELECT
       COUNT(*) as total,
       SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) as done,
@@ -81,7 +92,9 @@ export function getHistoryStats() {
       SUM(duration_seconds) as totalDuration,
       AVG(elapsed_ms) as avgElapsed
     FROM renders
-  `).get();
+  `,
+    )
+    .get();
 
   return {
     total: stats?.total || 0,

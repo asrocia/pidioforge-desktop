@@ -40,6 +40,8 @@ backend/ffmpeg-*/
 # Python
 __pycache__/
 *.pyc
+create_project.py
+patch_target_styles.py
 
 # Temp
 *.tmp

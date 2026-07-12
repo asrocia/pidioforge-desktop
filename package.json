@@ -14,7 +14,8 @@
     "preview:static": "node tools/static-preview.mjs",
     "prepare:build": "node tools/prepare-build.mjs",
     "build:web": "cd frontend && npm run build",
-    "build:ready": "npm run prepare:build && npm run build:web",
+    "rebuild:electron": "electron-rebuild -f -w better-sqlite3 -v 42.5.0",
+    "build:ready": "npm run rebuild:electron && npm run prepare:build && npm run build:web",
     "typecheck": "tsc -p frontend/tsconfig.json --noEmit",
     "smoke:render": "node tools/smoke-render.mjs",
     "smoke:loop": "node tools/smoke-loop.mjs",
@@ -26,6 +27,7 @@
     "prepare": "husky"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.1",
     "@eslint/js": "^10.0.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -79,7 +81,10 @@
     "extraResources": [
       {
         "from": "electron/resources/backend",
-        "to": "backend"
+        "to": "backend",
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "electron/resources/bin",

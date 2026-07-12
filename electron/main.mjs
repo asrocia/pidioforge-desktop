@@ -4,7 +4,7 @@ import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { setupAutoUpdater } from "./updater.mjs";
+import { setupAutoUpdater } from './updater.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const electronDir = path.dirname(fileURLToPath(import.meta.url));
@@ -52,9 +52,16 @@ async function isApiHealthy() {
   }
 }
 
+async function waitForApi() {
+  for (let attempt = 0; attempt < 15; attempt += 1) {
+    if (await isApiHealthy()) return true;
+    await new Promise(resolve => setTimeout(resolve, 300));
+  }
+  return false;
+}
+
 async function startApi() {
-  if (apiProcess) return;
-  if (await isApiHealthy()) return;
+  if (apiProcess || (await isApiHealthy())) return;
 
   const resources = resourceDir();
   const dataDir = path.join(app.getPath('userData'), 'backend-data');
@@ -84,11 +91,23 @@ async function startApi() {
 
   apiProcess.stdout?.pipe(stdout);
   apiProcess.stderr?.pipe(stderr);
+  apiProcess.on('error', error => {
+    console.error('Backend process failed:', error);
+  });
   apiProcess.on('exit', () => {
     apiProcess = undefined;
     stdout.end();
     stderr.end();
   });
+
+  if (!(await waitForApi())) {
+    const process = apiProcess;
+    apiProcess = undefined;
+    process?.kill();
+    stdout.end();
+    stderr.end();
+    throw new Error(`Backend API unavailable on port ${apiPort}. Check logs in ${logDir}`);
+  }
 }
 
 function stopApi() {
@@ -101,9 +120,35 @@ function stopApi() {
 ipcMain.handle('pidioforge:pick-path', async (_event, options = {}) => {
   const requestedKind = String(options.kind || 'file').toLowerCase();
   const kind = ['file', 'directory', 'save'].includes(requestedKind) ? requestedKind : 'file';
-  const filters = Array.isArray(options.filters) && options.filters.length
-    ? options.filters
-    : [{ name: 'Media', extensions: ['mp4', 'mov', 'mkv', 'webm', 'avi', 'mp3', 'wav', 'aac', 'm4a', 'flac', 'ogg', 'jpg', 'jpeg', 'png', 'webp', 'bmp', 'lrc', 'srt', 'txt'] }];
+  const filters =
+    Array.isArray(options.filters) && options.filters.length
+      ? options.filters
+      : [
+          {
+            name: 'Media',
+            extensions: [
+              'mp4',
+              'mov',
+              'mkv',
+              'webm',
+              'avi',
+              'mp3',
+              'wav',
+              'aac',
+              'm4a',
+              'flac',
+              'ogg',
+              'jpg',
+              'jpeg',
+              'png',
+              'webp',
+              'bmp',
+              'lrc',
+              'srt',
+              'txt',
+            ],
+          },
+        ];
   if (kind === 'save') {
     const result = await dialog.showSaveDialog(mainWindow, {
       title: options.title || 'Pilih output',
@@ -141,7 +186,7 @@ ipcMain.handle('pidioforge:notify', async (_event, { title = '', body = '' } = {
   if (!Notification.isSupported()) return;
   new Notification({ title: title || 'PidioForge', body: body || '' }).show();
 });
-nipcMain.handle('pidioforge:save-file', async (_event, { content = ''  , defaultName = 'project.pidioforge' } = {}) => {
+ipcMain.handle('pidioforge:save-file', async (_event, { content = '', defaultName = 'project.pidioforge' } = {}) => {
   const result = await dialog.showSaveDialog(mainWindow, {
     title: 'Export Project',
     defaultPath: defaultName,
@@ -188,7 +233,10 @@ async function createWindow() {
   });
 
   mainWindow.maximize();
-  mainWindow.once('ready-to-show', () => { mainWindow?.show(); setupAutoUpdater(mainWindow); });
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.show();
+    setupAutoUpdater(mainWindow);
+  });
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
