@@ -4,7 +4,7 @@ import { cn } from '../../lib/utils'
 /** Panel scroll container — col 2 settings area */
 export function PanelWrap({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn('flex flex-col gap-0 overflow-y-auto overflow-x-hidden bg-ds-bg-elevated h-full scroll-smooth', className)}>
+    <div className={cn('flex flex-col gap-0 overflow-y-auto overflow-x-hidden h-full scroll-smooth', className)}>
       {children}
     </div>
   )
@@ -13,8 +13,8 @@ export function PanelWrap({ children, className }: { children: React.ReactNode; 
 /** Section header row at top of a panel */
 export function PanelHeader({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
-    <div className="sticky top-0 z-10 flex items-center justify-between gap-3 px-4 py-2.5 bg-ds-bg-elevated border-b border-ds-line backdrop-blur-sm">
-      <h2 className="text-[12px] font-bold uppercase tracking-[0.08em] text-ds-title">{title}</h2>
+    <div className="sticky top-0 z-10 flex items-center justify-between gap-4 px-5 py-3 bg-[var(--secondary-bg)] border-b border-[var(--border-subtle)] backdrop-blur-sm">
+      <h2 className="text-[13px] font-bold uppercase tracking-[0.08em] text-[var(--text-primary)] letter-spacing-wide">{title}</h2>
       {children && <div className="flex items-center gap-2">{children}</div>}
     </div>
   )
@@ -23,9 +23,9 @@ export function PanelHeader({ title, children }: { title: string; children?: Rea
 /** Card group with h3 heading */
 export function Group({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn('px-4 py-3 border-b border-ds-line', className)}>
-      <h3 className="text-[11px] font-bold uppercase tracking-[0.06em] text-ds-muted mb-2.5">{title}</h3>
-      <div className="flex flex-col gap-1 min-w-0">{children}</div>
+    <div className={cn('px-5 py-4 border-b border-[var(--border-subtle)]', className)}>
+      <h3 className="text-[12px] font-semibold tracking-wide text-[var(--text-secondary)] mb-3">{title}</h3>
+      <div className="flex flex-col gap-3 min-w-0">{children}</div>
     </div>
   )
 }
@@ -33,7 +33,7 @@ export function Group({ title, children, className }: { title: string; children:
 /** 3-column grid */
 export function Grid3({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn('grid grid-cols-3 gap-3 my-1.5 min-w-0', className)}>
+    <div className={cn('grid grid-cols-3 gap-3 my-2 min-w-0', className)}>
       {children}
     </div>
   )
@@ -42,7 +42,7 @@ export function Grid3({ children, className }: { children: React.ReactNode; clas
 /** Action button row */
 export function ActionBar({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn('flex flex-wrap items-center gap-2 px-4 py-2.5 bg-ds-bg-base/50 border-b border-ds-line', className)}>
+    <div className={cn('flex flex-wrap items-center gap-2.5 px-5 py-3 bg-[var(--tertiary-bg)] border-b border-[var(--border-subtle)]', className)}>
       {children}
     </div>
   )
@@ -67,14 +67,14 @@ export function ActionBtn({
       onClick={onClick}
       disabled={disabled || loading}
       className={cn(
-        'inline-flex items-center justify-center gap-1.5 rounded-[var(--radius)] text-[11px] font-semibold border',
-        'min-h-[30px] px-3 py-1 disabled:opacity-40 disabled:pointer-events-none',
-        'transition-[background,border-color,color,box-shadow]',
-        variant === 'primary' && 'bg-ds-accent text-white border-ds-accent-hover hover:bg-ds-accent-hover shadow-sm',
-        variant === 'danger' && 'bg-ds-danger text-white border-[#c95b65] hover:bg-[#d85f6a] shadow-sm',
-        variant === 'wide' && 'w-full bg-ds-bg-panel-2 text-ds-muted border-ds-line-strong hover:bg-ds-bg-active hover:text-ds-text',
-        variant === 'ghost' && 'bg-transparent text-ds-muted border-transparent hover:bg-ds-bg-panel hover:text-ds-text',
-        variant === 'default' && 'bg-ds-bg-panel-2 text-ds-text border-ds-line-strong hover:bg-ds-bg-active hover:border-ds-line-strong',
+        'inline-flex items-center justify-center gap-2 rounded-[var(--radius-sm)] text-[13px] font-semibold border',
+        'min-h-[38px] px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed',
+        'transition-all duration-[var(--transition-fast)]',
+        variant === 'primary' && 'bg-[var(--accent-success)] text-white border-[var(--accent-success-hover)] hover:bg-[var(--accent-success-hover)] shadow-[var(--shadow-sm)]',
+        variant === 'danger' && 'bg-[var(--accent-danger)] text-white border-[var(--accent-danger-hover)] hover:bg-[var(--accent-danger-hover)] shadow-[var(--shadow-sm)]',
+        variant === 'wide' && 'w-full bg-[var(--surface)] text-[var(--text-primary)] border-[var(--border-medium)] hover:bg-[var(--surface-hover)] hover:border-[var(--border-strong)]',
+        variant === 'ghost' && 'bg-transparent text-[var(--text-secondary)] border-transparent hover:bg-[var(--tertiary-bg)] hover:text-[var(--text-primary)]',
+        variant === 'default' && 'bg-[var(--surface)] text-[var(--text-primary)] border-[var(--border-medium)] hover:bg-[var(--surface-hover)] hover:border-[var(--border-strong)] hover:transform hover:translateY(-1px)',
       )}
     >
       {loading && <span className="spinner" />}
@@ -87,11 +87,11 @@ export function ActionBtn({
 export function InfoBar({ children, variant = 'default' }: { children: React.ReactNode; variant?: 'default' | 'ok' | 'error' | 'warn' }) {
   return (
     <div className={cn(
-      'px-4 py-2 text-[11px] flex flex-wrap items-center gap-2 rounded-[var(--radius-sm)] mx-3 my-1.5',
-      variant === 'ok' && 'text-ds-success bg-ds-success-bg border border-ds-success/20',
-      variant === 'error' && 'text-ds-danger bg-ds-danger-bg border border-ds-danger/20',
-      variant === 'warn' && 'text-ds-warn bg-ds-warn-bg border border-ds-warn/20',
-      variant === 'default' && 'text-ds-muted bg-ds-bg-elevated border border-ds-line',
+      'px-4 py-3 text-[12px] flex flex-wrap items-center gap-3 rounded-[var(--radius-md)] mx-4 my-2',
+      variant === 'ok' && 'text-[var(--accent-success)] bg-[rgba(16,185,129,0.1)] border border-[rgba(16,185,129,0.2)]',
+      variant === 'error' && 'text-[var(--accent-danger)] bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.2)]',
+      variant === 'warn' && 'text-[var(--accent-warning)] bg-[rgba(245,158,11,0.1)] border border-[rgba(245,158,11,0.2)]',
+      variant === 'default' && 'text-[var(--text-secondary)] bg-[var(--tertiary-bg)] border border-[var(--border-subtle)]',
     )}>
       {children}
     </div>
@@ -101,11 +101,11 @@ export function InfoBar({ children, variant = 'default' }: { children: React.Rea
 /** Warning box */
 export function WarnBox({ title, items }: { title: string; items: string[] }) {
   return (
-    <div className="mx-3 my-2 rounded-[var(--radius-lg)] bg-ds-warn-bg border border-ds-warn/25 px-3 py-2.5">
-      <b className="text-[11px] font-bold text-ds-warn block mb-1.5">{title}</b>
-      <div className="flex flex-col gap-1">
+    <div className="mx-4 my-3 rounded-[var(--radius-lg)] bg-[rgba(245,158,11,0.1)] border border-[rgba(245,158,11,0.25)] px-4 py-3 shadow-[var(--shadow-sm)]">
+      <b className="text-[12px] font-bold text-[var(--accent-warning)] block mb-2">{title}</b>
+      <div className="flex flex-col gap-1.5">
         {items.map((w, i) => (
-          <small key={i} className="text-[11px] text-ds-warn/80 leading-snug">{w}</small>
+          <small key={i} className="text-[12px] text-[var(--text-secondary)] leading-relaxed">{w}</small>
         ))}
       </div>
     </div>
@@ -115,18 +115,18 @@ export function WarnBox({ title, items }: { title: string; items: string[] }) {
 /** Hint / tip text */
 export function Hint({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[11px] text-ds-muted italic leading-snug px-1 my-1.5">{children}</p>
+    <p className="text-[12px] text-[var(--text-muted)] italic leading-relaxed px-2 my-2">{children}</p>
   )
 }
 
 /** Stat grid row */
 export function StatRow({ items }: { items: Array<{ label: string; value: string | number; accent?: boolean }> }) {
   return (
-    <div className="flex flex-wrap gap-3 px-4 py-2.5">
+    <div className="grid grid-cols-3 gap-3 px-4 py-3">
       {items.map(({ label, value, accent }) => (
-        <div key={label} className="flex flex-col items-center leading-none min-w-[44px] py-1">
-          <b className={cn('text-[14px] font-bold', accent ? 'text-ds-accent' : 'text-ds-title')}>{value}</b>
-          <small className="text-[11px] text-ds-muted mt-1">{label}</small>
+        <div key={label} className="flex flex-col items-center justify-center text-center bg-[var(--surface)] border border-[var(--border-medium)] rounded-[var(--radius-md)] p-3 min-h-[70px]">
+          <b className={cn('text-[20px] font-bold mb-1', accent ? 'text-[var(--accent-primary)]' : 'text-[var(--accent-success)]')}>{value}</b>
+          <small className="text-[11px] text-[var(--text-muted)] leading-tight">{label}</small>
         </div>
       ))}
     </div>

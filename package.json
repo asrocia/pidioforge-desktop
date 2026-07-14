@@ -1,6 +1,6 @@
 {
   "name": "pidioforge-desktop-fullstack",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "author": "Ppjayabaru",
   "description": "Aplikasi desktop Electron + React + API lokal untuk produksi video musik: auto lirik, spectrum, branding, overlay, audio mixing, dan batch render.",
@@ -101,7 +101,15 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "asrocia",
+        "repo": "pidioforge-desktop",
+        "releaseType": "release"
+      }
+    ]
   },
   "dependencies": {
     "better-sqlite3": "^12.11.1",

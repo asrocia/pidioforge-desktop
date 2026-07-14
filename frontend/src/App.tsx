@@ -5,6 +5,7 @@ import { ModuleIcon } from './components/ui/ModuleIcon';
 import { WorkspacePopup } from './components/layout/WorkspacePopup';
 import { SettingsPanel } from './components/panels/SettingsPanel';
 import { PreviewPane } from './components/panels/PreviewPane';
+import { UpdateBanner } from './components/UpdateBanner';
 import { api } from './lib/api';
 import { setDeep } from './lib/config-path';
 import { useUndoRedo } from './hooks/useUndoRedo';
@@ -131,6 +132,7 @@ export function App() {
             </div>
           ))}
         </div>
+        <UpdateBanner />
       </header>
       {/* Main layout: sidebar + preview, workspace floats above preview */}
       <div className={cn('workspaceMain flex-1 grid overflow-hidden relative transition-all', sidebarCollapsed ? 'grid-cols-[48px_minmax(0,1fr)]' : 'grid-cols-[140px_minmax(0,1fr)]')}>

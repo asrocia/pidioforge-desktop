@@ -10,7 +10,7 @@ export function createHttpUtils({ allowedOrigin, maxBodyBytes }) {
     const origin = req?.headers?.origin || allowedOrigin;
     const allowed = new Set([allowedOrigin, 'http://127.0.0.1:1420', 'http://localhost:1420', 'file://', 'null']);
     return {
-      'access-control-allow-origin': allowed.has(origin) || origin === 'null' || !origin ? '*' : allowedOrigin,
+      'access-control-allow-origin': (allowed.has(origin) || origin === 'null' || !origin) ? '*' : allowedOrigin,
       'access-control-allow-methods': 'GET,POST,PUT,DELETE,OPTIONS',
       'access-control-allow-headers': 'content-type',
     };
@@ -35,11 +35,8 @@ export function createHttpUtils({ allowedOrigin, maxBodyBytes }) {
     }
     const text = Buffer.concat(chunks).toString('utf8');
     if (!text) return {};
-    try {
-      return JSON.parse(text);
-    } catch {
-      throw new HttpError(400, 'JSON tidak valid');
-    }
+    try { return JSON.parse(text); }
+    catch { throw new HttpError(400, 'JSON tidak valid'); }
   }
 
   return { body, corsHeaders, json, sendError };

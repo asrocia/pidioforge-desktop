@@ -1,11 +1,11 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { existsSync } from 'node:fs';
 
 const require = createRequire(import.meta.url);
-const databasePackage =
-  process.env.PIDIOFORGE_SQLITE_PACKAGE ||
-  path.join(path.dirname(fileURLToPath(import.meta.url)), 'vendor', 'node_modules', 'better-sqlite3');
+const vendorPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'vendor', 'node_modules', 'better-sqlite3');
+const databasePackage = process.env.PIDIOFORGE_SQLITE_PACKAGE || (existsSync(vendorPath) ? vendorPath : 'better-sqlite3');
 const Database = require(databasePackage);
 import { mkdir } from 'node:fs/promises';
 import { workspaceDir } from './config.mjs';

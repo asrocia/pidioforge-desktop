@@ -11,6 +11,7 @@ export function filtersFor(kind: PathFilter = 'media') {
     audio: [{ name: 'Audio', extensions: ['mp3', 'wav', 'aac', 'm4a', 'flac', 'ogg'] }],
     image: [{ name: 'Gambar', extensions: ['jpg', 'jpeg', 'png', 'webp', 'bmp'] }],
     lyrics: [{ name: 'Lirik', extensions: ['lrc', 'srt', 'txt'] }],
+    lut: [{ name: 'LUT File', extensions: ['cube', '3dl'] }],
   };
   return [...map[kind], { name: 'Semua File', extensions: ['*'] }];
 }
@@ -25,6 +26,7 @@ export function pickerButtonLabel(kind: PathKind, filter: PathFilter): string {
     audio: 'Pilih Audio',
     image: 'Pilih Gambar',
     lyrics: 'Pilih Lirik',
+    lut: 'Pilih LUT',
   };
   return labels[filter] || 'Pilih File';
 }
@@ -64,6 +66,7 @@ function expectedPathType(filter: PathFilter): string {
   if (filter === 'visual') return 'video/gambar';
   if (filter === 'media') return 'media';
   if (filter === 'lyrics') return 'lirik';
+  if (filter === 'lut') return 'LUT file';
   return filter;
 }
 
@@ -160,22 +163,121 @@ export function PathInput({ value, onChange, placeholder, kind = 'file', filter 
     }, 350);
     return () => { cancelled = true; clearTimeout(t); };
   }, [value, kind, filter]);
-  return <div className={`pathBox ${dragging ? 'dragging' : ''} ${value && info && !info.ok ? 'invalid' : ''}`} style={{minWidth:0}} onDragOver={e => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={onDrop}>
-    <div className="file" style={{minWidth:0}}>
-      <input value={value ?? ''} placeholder={placeholder || pickerPlaceholder(kind, filter)} onChange={e => onChange(e.target.value)} style={{minWidth:0}} />
-      {recent.length ? <select className="recentSelect" value="" onChange={e => e.target.value && commitPath(e.target.value)} title="File/folder terakhir"><option value="">Recent</option>{recent.map(item => <option key={item} value={item}>{item.split(/[\\/]/).pop() || item}</option>)}</select> : null}
-      <button type="button" onClick={pick} className={!bridgeReady ? 'pickerWarn' : ''} title={bridgeReady ? 'Buka penyimpanan lokal komputer' : 'Pemilih file aktif saat aplikasi dibuka lewat Electron'}>{pickerButtonLabel(kind, filter)}</button>
-      <button type="button" className="miniPathBtn" onClick={reveal} disabled={!value} title="Buka lokasi file/folder di Explorer">Lokasi</button>
-      <button type="button" className="miniPathBtn clearPathBtn" onClick={clear} disabled={!value} title="Kosongkan input">X</button>
+  
+  return (
+    <div 
+      className={`flex flex-col gap-2 p-3 rounded-[var(--radius-md)] border-2 border-dashed transition-all ${
+        dragging 
+          ? 'border-[var(--accent-primary)] bg-[rgba(59,130,246,0.05)]' 
+          : value && info && !info.ok 
+            ? 'border-[var(--accent-danger)] bg-[rgba(239,68,68,0.05)]' 
+            : 'border-[var(--border-medium)] bg-[var(--tertiary-bg)]'
+      }`}
+      onDragOver={e => { e.preventDefault(); setDragging(true); }} 
+      onDragLeave={() => setDragging(false)} 
+      onDrop={onDrop}
+    >
+      <div className="flex gap-2 items-center">
+        <input 
+          value={value ?? ''} 
+          placeholder={placeholder || pickerPlaceholder(kind, filter)} 
+          onChange={e => onChange(e.target.value)}
+          className="flex-1 min-w-0 bg-[var(--surface)] border border-[var(--border-medium)] rounded-[var(--radius-sm)] text-[var(--text-primary)] text-[13px] min-h-[38px] px-3 py-2 outline-none focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[rgba(59,130,246,0.1)] transition-all placeholder:text-[var(--text-muted)]"
+        />
+        {recent.length > 0 && (
+          <select 
+            className="bg-[var(--surface)] border border-[var(--border-medium)] rounded-[var(--radius-sm)] text-[var(--text-primary)] text-[12px] min-h-[38px] px-2 py-2 cursor-pointer hover:border-[var(--border-strong)] transition-all" 
+            value="" 
+            onChange={e => e.target.value && commitPath(e.target.value)} 
+            title="File/folder terakhir"
+          >
+            <option value="">Recent</option>
+            {recent.map(item => (
+              <option key={item} value={item}>
+                {item.split(/[\\/]/).pop() || item}
+              </option>
+            ))}
+          </select>
+        )}
+        <button 
+          type="button" 
+          onClick={pick} 
+          className={`px-4 py-2 min-h-[38px] rounded-[var(--radius-sm)] text-[13px] font-semibold border transition-all ${
+            !bridgeReady 
+              ? 'bg-[var(--accent-warning)] border-[var(--accent-warning-hover)] text-white hover:bg-[var(--accent-warning-hover)]' 
+              : 'bg-[var(--accent-primary)] border-[var(--accent-primary-hover)] text-white hover:bg-[var(--accent-primary-hover)]'
+          }`}
+          title={bridgeReady ? 'Buka penyimpanan lokal komputer' : 'Pemilih file aktif saat aplikasi dibuka lewat Electron'}
+        >
+          {pickerButtonLabel(kind, filter)}
+        </button>
+        <button 
+          type="button" 
+          onClick={reveal} 
+          disabled={!value}
+          className="px-3 py-2 min-h-[38px] rounded-[var(--radius-sm)] text-[12px] font-semibold bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          title="Buka lokasi file/folder di Explorer"
+        >
+          Lokasi
+        </button>
+        <button 
+          type="button" 
+          onClick={clear} 
+          disabled={!value}
+          className="px-3 py-2 min-h-[38px] rounded-[var(--radius-sm)] text-[12px] font-semibold bg-[var(--accent-danger)] border border-[var(--accent-danger-hover)] text-white hover:bg-[var(--accent-danger-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          title="Kosongkan input"
+        >
+          ✕
+        </button>
+      </div>
+      
+      {statusText && (
+        <small className={`text-[12px] ${info?.ok && !mismatch ? 'text-[var(--accent-success)]' : 'text-[var(--accent-danger)]'}`}>
+          {statusText}
+        </small>
+      )}
+      
+      {statusMeta && (
+        <small className={`text-[11px] ${info?.ok && !mismatch ? 'text-[var(--text-muted)]' : 'text-[var(--accent-danger)]'}`}>
+          {statusMeta}
+        </small>
+      )}
+      
+      {mismatch && (
+        <small className="text-[12px] text-[var(--accent-danger)]">
+          Input ini butuh {expectedPathType(filter)}, tapi file terbaca sebagai {currentType}.
+        </small>
+      )}
+      
+      {canPreview && (
+        <div className="flex gap-3 items-center p-2 rounded-[var(--radius-sm)] bg-[var(--surface)] border border-[var(--border-medium)]">
+          {currentType === 'image' && (
+            <img 
+              src={fileUrl(value)} 
+              className="w-16 h-16 object-cover rounded-[var(--radius-sm)]" 
+              alt="Preview"
+            />
+          )}
+          {currentType === 'video' && (
+            <video 
+              src={fileUrl(value)} 
+              muted 
+              controls 
+              className="w-16 h-16 object-cover rounded-[var(--radius-sm)]"
+            />
+          )}
+          {currentType === 'audio' && (
+            <audio 
+              src={fileUrl(value)} 
+              controls 
+              className="w-full h-10"
+            />
+          )}
+          <span className="flex-1 text-[12px] text-[var(--text-secondary)] truncate">
+            {value.split(/[\\/]/).pop()}
+          </span>
+        </div>
+      )}
     </div>
-    {statusText ? <small className={info?.ok && !mismatch ? 'pathOk' : 'pathError'}>{statusText}</small> : null}
-    {statusMeta ? <small className={info?.ok && !mismatch ? 'pathMeta okMeta' : 'pathMeta errorMeta'}>{statusMeta}</small> : null}
-    {mismatch ? <small className="pathError">Input ini butuh {expectedPathType(filter)}, tapi file terbaca sebagai {currentType}.</small> : null}
-    {canPreview ? <div className="pathPreview">
-      {currentType === 'image' && <img src={fileUrl(value)} />}
-      {currentType === 'video' && <video src={fileUrl(value)} muted controls />}
-      {currentType === 'audio' && <audio src={fileUrl(value)} controls />}
-      <span>{value.split(/[\\/]/).pop()}</span>
-    </div> : null}
-  </div>;
+  );
 }

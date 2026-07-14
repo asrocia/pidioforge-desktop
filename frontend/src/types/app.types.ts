@@ -25,7 +25,7 @@ export type Preset = { id: string; name: string; config: any }
 export type Project = { id: string; name: string; config: any }
 export type AppState = { activeProjectId: string; projects: Project[]; presets: Preset[]; jobs: Job[]; logs: string[] }
 export type PathKind = 'file' | 'directory' | 'save'
-export type PathFilter = 'media' | 'visual' | 'video' | 'audio' | 'image' | 'lyrics'
+export type PathFilter = 'media' | 'visual' | 'video' | 'audio' | 'image' | 'lyrics' | 'lut'
 
 export type PathInfo = {
   ok?: boolean
