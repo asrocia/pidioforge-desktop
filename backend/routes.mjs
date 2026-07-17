@@ -17,6 +17,7 @@ import { scanDir, enrichValidation, pathInfo, streamMediaFile } from './media-sc
 import { renderJob } from './render-engine.mjs';
 import { generateThumbnails } from './thumbnail-engine.mjs';
 import { initHistory, recordRender, getHistory, getHistoryStats, clearHistory } from "./history.mjs";
+import { generateLivePreview, generateFullPreview, cleanupPreviews } from './preview-stream.mjs';
 
 export async function handleRequest(req, res, url, ctx) {
   const { processes, loopJobs, runQueueLoop, requestQueueStop } = ctx;
@@ -258,6 +259,44 @@ export async function handleRequest(req, res, url, ctx) {
       if (!validation.ok) return json(res, 400, { ok: false, error: validation.errors.join(' '), errors: validation.errors, warnings: [...diag.warnings, ...validation.warnings] });
       const job = { id: safeId('job'), projectId: state.activeProjectId, title: b.title || config.input?.title || `Render ${state.jobs.length + 1}`, status: 'standby', progress: 0, speed: '0.0x', output: b.output || '', outputDir: b.outputDir || config.input?.output, input: { visual: config.input?.visual, audio: config.input?.audio, lyrics: config.lyrics?.file || config.lyrics?.srtPath || '' }, config, createdAt: new Date().toISOString(), approvedFromPreview: true, previewWarnings: diag.warnings };
       state.jobs.push(job); addLog(state, `${job.title} dikirim dari preview ke antrian.`); await saveState(state); return json(res, 201, { job, warnings: diag.warnings });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/preview/live') {
+      const b = await body(req); const config = previewConfig(activeConfig(state), b.config || {});
+      const logs = []; let lastProgress = null;
+      try {
+        const result = await generateLivePreview(config, {
+          startAt: Number(b.startAt || 0),
+          duration: Number(b.duration || 10),
+          quality: b.quality || 'draft',
+          fps: Number(b.fps || 15),
+          width: Number(b.width || 640),
+          height: Number(b.height || 360),
+          workspaceDir,
+          onProgress: (p) => { lastProgress = p; },
+          onLog: (line) => logs.push(String(line).slice(0, 500))
+        });
+        return json(res, 200, { ...result, logs: logs.slice(-20), progress: lastProgress });
+      } catch (e) { return json(res, 500, { ok: false, error: e.message, logs }); }
+    }
+    if (req.method === 'POST' && url.pathname === '/api/preview/full') {
+      const b = await body(req); const config = deepMerge(activeConfig(state), b.config || {});
+      const logs = []; let lastProgress = null;
+      try {
+        const result = await generateFullPreview(config, {
+          startAt: Number(b.startAt || 0),
+          duration: Number(b.duration || 10),
+          workspaceDir,
+          onProgress: (p) => { lastProgress = p; },
+          onLog: (line) => logs.push(String(line).slice(0, 500))
+        });
+        return json(res, 200, { ...result, logs: logs.slice(-20), progress: lastProgress });
+      } catch (e) { return json(res, 500, { ok: false, error: e.message, logs }); }
+    }
+    if (req.method === 'POST' && url.pathname === '/api/preview/cleanup') {
+      try {
+        const result = await cleanupPreviews(workspaceDir, Number(req.body?.maxAge || 3600000));
+        return json(res, 200, result);
+      } catch (e) { return json(res, 500, { ok: false, error: e.message }); }
     }
     if (req.method === 'GET' && url.pathname === '/api/performance/status') return json(res, 200, await performanceStatus(state));
     if (req.method === 'GET' && url.pathname === '/api/performance/presets') return json(res, 200, { presets: [

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Field, Check, TextInput, SelectInput, Slider } from '../ui/form-controls';
 import { PathInput } from '../ui/PathInput';
 import { cn } from '../../utils/cn';

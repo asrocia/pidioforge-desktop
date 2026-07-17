@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { cn } from '../../lib/utils';
 
 interface Toast {
@@ -9,11 +9,11 @@ interface Toast {
   duration?: number;
 }
 
-interface ToastContextValue {
+/* interface ToastContextValue {
   toasts: Toast[];
   addToast: (toast: Omit<Toast, 'id'>) => void;
   removeToast: (id: string) => void;
-}
+} */
 
 let toastListeners: Array<(toasts: Toast[]) => void> = [];
 let toastState: Toast[] = [];

@@ -35,12 +35,12 @@ export function QueuePanel({ config }: { config: any }) {
   const [filter, setFilter] = useState<QueueStatus>('all');
   const [concurrency, setConcurrency] = useState(1);
   const [busy, setBusy] = useState(false);
-  const [showQueueControls, setShowQueueControls] = useState(true);
-  const [showPerf, setShowPerf] = useState(true);
-  const [showManual, setShowManual] = useState(true);
-  const [showBatch, setShowBatch] = useState(false);
-  const [showList, setShowList] = useState(true);
-  const [showQueueLog, setShowQueueLog] = useState(false);
+  const [_showQueueControls] = useState(true); // setShowQueueControls removed = useState(true);
+  const [_showPerf] = useState(false); // setShowPerf removed = useState(true);
+  const [_showManual] = useState(false); // setShowManual removed = useState(true);
+  const [_showBatch] = useState(false); // setShowBatch removed = useState(false);
+  const [_showList] = useState(false); // setShowList removed = useState(true);
+  const [_showQueueLog] = useState(false); // setShowQueueLog removed = useState(false);
   async function refreshQueue() {
     const j = await api('/api/jobs').catch(() => ({ jobs: [], logs: [] }));
     const q = await api('/api/queue/summary').catch(() => null);

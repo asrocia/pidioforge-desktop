@@ -31,9 +31,39 @@ server.on('error', error => {
 });
 
 try {
+  console.log('=== Backend Server Starting ===');
+  console.log('Node version:', process.version);
+  console.log('Platform:', process.platform, process.arch);
+  console.log('CWD:', process.cwd());
+  console.log('Environment:', {
+    PORT,
+    ALLOWED_ORIGIN,
+    PIDIOFORGE_RESOURCE_DIR: process.env.PIDIOFORGE_RESOURCE_DIR,
+    PIDIOFORGE_DATA_DIR: process.env.PIDIOFORGE_DATA_DIR,
+    PIDIOFORGE_LOG_DIR: process.env.PIDIOFORGE_LOG_DIR,
+  });
+  
   await initHistory();
-  server.listen(PORT, '127.0.0.1', () => console.log(`PidioForge Production API: http://127.0.0.1:${PORT}`));
+  console.log('History database initialized successfully');
+  
+  server.listen(PORT, '127.0.0.1', () => {
+    console.log(`PidioForge Production API: http://127.0.0.1:${PORT}`);
+    console.log('Backend server ready');
+  });
 } catch (error) {
-  console.error('Backend initialization failed:', error);
+  console.error('=== Backend initialization failed ===');
+  console.error('Error name:', error.name);
+  console.error('Error message:', error.message);
+  console.error('Error code:', error.code);
+  console.error('Error stack:', error.stack);
+  
+  if (error.message?.includes('better-sqlite3') || error.code === 'ERR_DLOPEN_FAILED') {
+    console.error('\n=== SQLite Native Module Error ===');
+    console.error('This is likely a Node.js ABI version mismatch.');
+    console.error('The better-sqlite3 module needs to be rebuilt for this Electron version.');
+    console.error('Expected NODE_MODULE_VERSION:', process.versions.modules);
+  }
+  
   process.exitCode = 1;
+  process.exit(1);
 }

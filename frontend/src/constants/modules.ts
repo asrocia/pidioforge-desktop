@@ -9,6 +9,7 @@ export const modules: Array<{ key: ModuleKey; title: string; sub: string }> = [
   { key: 'overlay', title: 'OVERLAY', sub: 'particle / timestamp' },
   { key: 'queue', title: 'QUEUE', sub: 'batch render nyata' },
   { key: 'loop', title: 'LOOPING', sub: 'video pendek jadi panjang' },
+  { key: 'templates', title: 'TEMPLATES', sub: 'quick start presets' },
   { key: 'help', title: 'BANTUAN', sub: 'panduan fitur' },
 ];
 
@@ -21,6 +22,7 @@ export const moduleDisplay: Record<ModuleKey, { title: string; sub: string }> = 
   overlay: { title: 'Overlay', sub: 'particle / timestamp' },
   queue: { title: 'Queue', sub: 'batch render' },
   loop: { title: 'Seamless Looping', sub: 'video 8 detik jadi durasi panjang' },
+  templates: { title: 'Templates', sub: 'quick start presets' },
   help: { title: 'Bantuan', sub: 'panduan fitur dan alur kerja' },
 };
 
@@ -33,6 +35,7 @@ export const moduleUi: Record<ModuleKey, { icon: ModuleKey; tone: string }> = {
   overlay: { icon: 'overlay', tone: 'violet' },
   queue: { icon: 'queue', tone: 'red' },
   loop: { icon: 'loop', tone: 'green' },
+  templates: { icon: 'templates', tone: 'violet' },
   help: { icon: 'help', tone: 'blue' },
 };
 

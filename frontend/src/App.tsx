@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { cn } from './utils/cn';
 import { modules, moduleDisplay, moduleUi } from './constants/modules';
 import { ModuleIcon } from './components/ui/ModuleIcon';
@@ -16,8 +16,21 @@ export function App() {
   const saveTimer = useRef<number | null>(null);
   const pendingConfig = useRef<any>(null);
   const undoRedo = useUndoRedo<any>(null);
-  const refresh = async () => { const s = await api('/api/state').catch(() => null); if (s) { setState(s); const p = s.projects.find((x: Project) => x.id === s.activeProjectId) || s.projects[0]; setConfig(p?.config); undoRedo.push(p?.config); } };
-  const refreshPerf = async () => { const p = await api('/api/performance/status').catch(() => null); if (p) setPerf(p); };
+  
+  const refresh = useCallback(async () => { 
+    const s = await api('/api/state').catch(() => null); 
+    if (s) { 
+      setState(s); 
+      const p = s.projects.find((x: Project) => x.id === s.activeProjectId) || s.projects[0]; 
+      setConfig(p?.config); 
+      undoRedo.push(p?.config); 
+    } 
+  }, [undoRedo]);
+  
+  const refreshPerf = useCallback(async () => { 
+    const p = await api('/api/performance/status').catch(() => null); 
+    if (p) setPerf(p); 
+  }, []);
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => { refresh(); refreshPerf(); const t = setInterval(() => { refresh(); refreshPerf(); }, Number(perf?.performance?.refreshMs || 1500)); return () => clearInterval(t); }, [perf?.performance?.refreshMs]); // eslint-disable-line
   useEffect(() => () => { if (saveTimer.current) window.clearTimeout(saveTimer.current); }, []);
@@ -56,15 +69,38 @@ export function App() {
       }
     }, 450);
   }
-  function updateConfig(path: string, value: any) { setConfig((prev: any) => { const next = setDeep(prev || config, path, value); undoRedo.push(next); scheduleConfigSave(next); return next; }); }
-  async function applyPreset(id: string) { await api(`/api/presets/${id}/apply`, { method: 'POST' }); await refresh(); }
-  async function savePreset() { const name = prompt('Nama preset?') || 'Preset Baru'; await api('/api/presets', { method: 'POST', body: JSON.stringify({ name, config }) }); await refresh(); }
-  const projectCount = state?.projects?.length || 0;
-  const queueCount = state?.jobs?.length || 0;
-  const renderCount = perf?.metrics?.activeRenders || 0;
-  const activeJob = state?.jobs?.find(j => j.status === 'rendering');
-  const systemReady = Boolean(state && config);
-  const statusText = activeJob ? `${activeJob.title} / ${activeJob.progress || 0}%` : systemReady ? (saveInfo || 'Siap produksi') : 'Menghubungkan backend';
+  const updateConfig = useCallback((path: string, value: any) => { 
+    setConfig((prev: any) => { 
+      const next = setDeep(prev || config, path, value); 
+      undoRedo.push(next); 
+      scheduleConfigSave(next); 
+      return next; 
+    }); 
+  }, [config, undoRedo]);
+  
+  const applyPreset = useCallback(async (id: string) => { 
+    await api(`/api/presets/${id}/apply`, { method: 'POST' }); 
+    await refresh(); 
+  }, [refresh]);
+  
+  const savePreset = useCallback(async () => { 
+    const name = prompt('Nama preset?') || 'Preset Baru'; 
+    await api('/api/presets', { method: 'POST', body: JSON.stringify({ name, config }) }); 
+    await refresh(); 
+  }, [config, refresh]);
+  
+  // Memoized computed values
+  const projectCount = useMemo(() => state?.projects?.length || 0, [state?.projects]);
+  const queueCount = useMemo(() => state?.jobs?.length || 0, [state?.jobs]);
+  const renderCount = useMemo(() => perf?.metrics?.activeRenders || 0, [perf?.metrics?.activeRenders]);
+  const activeJob = useMemo(() => state?.jobs?.find(j => j.status === 'rendering'), [state?.jobs]);
+  const systemReady = useMemo(() => Boolean(state && config), [state, config]);
+  const statusText = useMemo(() => 
+    activeJob ? `${activeJob.title} / ${activeJob.progress || 0}%` : 
+    systemReady ? (saveInfo || 'Siap produksi') : 
+    'Menghubungkan backend',
+    [activeJob, systemReady, saveInfo]
+  );
   const toneAccent: Record<string, string> = {
     cyan:   'text-[#62dbc1]',
     green:  'text-[#2dbb7f]',

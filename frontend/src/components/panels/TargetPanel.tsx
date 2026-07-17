@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Field, Check, TextInput, SelectInput } from '../ui/form-controls';
 import { PathInput } from '../ui/PathInput';
+import { DragDropZone } from '../ui/DragDropZone';
 import { cn } from '../../utils/cn';
 import { humanSize } from '../../utils/media';
 import { api } from '../../lib/api';
@@ -105,7 +106,53 @@ export function TargetPanel({ config, updateConfig }: { config: any; updateConfi
         <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
           <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Input Utama</h3>
           <Field label="File Visual"><PathInput value={getDeep(config, 'input.visual')} onChange={v => updateConfig('input.visual', v)} filter="visual" /></Field>
+          
+          {/* Drag & Drop for Visual */}
+          <DragDropZone
+            onFileDrop={(files) => {
+              if (files[0]) {
+                // Note: Browser File API doesn't expose full path for security
+                // In Electron/Tauri, you'd use their file dialog APIs
+                updateConfig('input.visual', files[0].name);
+              }
+            }}
+            accept="video/*,image/*,.mp4,.mov,.avi,.mkv,.webm,.jpg,.jpeg,.png,.gif,.bmp,.webp"
+            multiple={false}
+            maxSize={2000}
+            className="mt-2"
+          >
+            <div className="flex flex-col items-center justify-center py-4 px-4 text-center">
+              <svg className="w-8 h-8 mb-2 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <p className="text-[11px] text-[var(--text-muted)]">Drop video/image here</p>
+            </div>
+          </DragDropZone>
+          
           <Field label="File Audio"><PathInput value={getDeep(config, 'input.audio')} onChange={v => updateConfig('input.audio', v)} filter="audio" /></Field>
+          
+          {/* Drag & Drop for Audio */}
+          <DragDropZone
+            onFileDrop={(files) => {
+              if (files[0]) {
+                // Note: Browser File API doesn't expose full path for security
+                // In Electron/Tauri, you'd use their file dialog APIs
+                updateConfig('input.audio', files[0].name);
+              }
+            }}
+            accept="audio/*,.mp3,.wav,.flac,.aac,.ogg,.m4a,.wma"
+            multiple={false}
+            maxSize={500}
+            className="mt-2"
+          >
+            <div className="flex flex-col items-center justify-center py-4 px-4 text-center">
+              <svg className="w-8 h-8 mb-2 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+              </svg>
+              <p className="text-[11px] text-[var(--text-muted)]">Drop audio file here</p>
+            </div>
+          </DragDropZone>
+          
           <Field label="Judul Default"><TextInput value={getDeep(config, 'input.title')} onChange={v => updateConfig('input.title', v)} placeholder="Judul video" /></Field>
           <Field label="Output Folder"><PathInput value={getDeep(config, 'input.output')} onChange={v => updateConfig('input.output', v)} placeholder="Hasil" kind="directory" /></Field>
         </div>

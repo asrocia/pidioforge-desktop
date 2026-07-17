@@ -1,17 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { getDeep } from '../../lib/config-path';
 import { flattenModulePatch } from '../../utils/media';
 import { moduleDisplay } from '../../constants/modules';
 import { PanelErrorBoundary } from '../ErrorBoundary';
-import { TargetPanel } from './TargetPanel';
-import { BrandingPanel } from './BrandingPanel';
-import { AudioMixingPanel } from './AudioMixingPanel';
-import { LyricsPanel } from './LyricsPanel';
-import { SpectrumPanel } from './SpectrumPanel';
-import { OverlayPanel } from './OverlayPanel';
-import { QueuePanel } from './QueuePanel';
-import { LoopingPanel } from './LoopingPanel';
-import { HelpPanel } from './HelpPanel';
+import { 
+  TargetPanel, 
+  BrandingPanel, 
+  AudioMixingPanel, 
+  LyricsPanel, 
+  SpectrumPanel, 
+  OverlayPanel, 
+  QueuePanel, 
+  LoopingPanel, 
+  TemplatesPanel, 
+  HelpPanel 
+} from './index';
 import type { ModuleKey, Preset } from '../../types/app.types';
 
 export function ModulePresetControl({ active, config, updateConfig }: { active: ModuleKey; config: any; updateConfig: (path: string, value: any) => void }) {
@@ -49,15 +52,18 @@ export function SettingsPanel({ active, config, updateConfig, presets, applyPres
       </div>
     </div>
     <PanelErrorBoundary fallbackTitle={moduleDisplay[active]?.title} key={active}>
-      {active === 'target' && <TargetPanel config={config} updateConfig={updateConfig} />}
-      {active === 'branding' && <BrandingPanel config={config} updateConfig={updateConfig} />}
-      {active === 'audio' && <AudioMixingPanel config={config} updateConfig={updateConfig} />}
-      {active === 'lyrics' && <LyricsPanel config={config} updateConfig={updateConfig} />}
-      {active === 'spectrum' && <SpectrumPanel config={config} updateConfig={updateConfig} />}
-      {active === 'overlay' && <OverlayPanel config={config} updateConfig={updateConfig} />}
-      {active === 'queue' && <QueuePanel config={config} />}
-      {active === 'loop' && <LoopingPanel config={config} updateConfig={updateConfig} />}
-      {active === 'help' && <HelpPanel />}
+      <Suspense fallback={<div className="flex items-center justify-center p-8"><div className="text-gray-400">Loading panel...</div></div>}>
+        {active === 'target' && <TargetPanel config={config} updateConfig={updateConfig} />}
+        {active === 'branding' && <BrandingPanel config={config} updateConfig={updateConfig} />}
+        {active === 'audio' && <AudioMixingPanel config={config} updateConfig={updateConfig} />}
+        {active === 'lyrics' && <LyricsPanel config={config} updateConfig={updateConfig} />}
+        {active === 'spectrum' && <SpectrumPanel config={config} updateConfig={updateConfig} />}
+        {active === 'overlay' && <OverlayPanel config={config} updateConfig={updateConfig} />}
+        {active === 'queue' && <QueuePanel config={config} />}
+        {active === 'loop' && <LoopingPanel config={config} updateConfig={updateConfig} />}
+        {active === 'templates' && <TemplatesPanel config={config} updateConfig={updateConfig} />}
+        {active === 'help' && <HelpPanel />}
+      </Suspense>
     </PanelErrorBoundary>
     {active !== 'help' && <div className="sectionPresetDock">
       <div className="presetBar">

@@ -1,4 +1,4 @@
-export type ModuleKey = 'target' | 'branding' | 'audio' | 'lyrics' | 'spectrum' | 'overlay' | 'queue' | 'loop' | 'help'
+export type ModuleKey = 'target' | 'branding' | 'audio' | 'lyrics' | 'spectrum' | 'overlay' | 'queue' | 'loop' | 'templates' | 'help'
 
 export type Job = {
   id: string

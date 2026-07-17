@@ -1,4 +1,3 @@
-import React from 'react';
 import type { ModuleKey } from '../../types/app.types';
 
 export function ModuleIcon({ kind }: { kind: ModuleKey }) {
@@ -19,6 +18,8 @@ export function ModuleIcon({ kind }: { kind: ModuleKey }) {
       return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><path d="M16.5 16.5l1.6 1.6 3.2-3.2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
     case 'loop':
       return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h8a4 4 0 0 1 0 8H9" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M10 5 7 7l3 2M14 19l3-2-3-2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+    case 'templates':
+      return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" strokeWidth="1.8" /><rect x="13" y="4" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" strokeWidth="1.8" /><rect x="4" y="13" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" strokeWidth="1.8" /><rect x="13" y="13" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" strokeWidth="1.8" /></svg>;
     case 'help':
       return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="1.8" /><path d="M9.8 9.4a2.4 2.4 0 1 1 4.2 1.6c-.8.8-1.8 1.2-1.8 2.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><circle cx="12" cy="17" r="1" fill="currentColor" /></svg>;
   }

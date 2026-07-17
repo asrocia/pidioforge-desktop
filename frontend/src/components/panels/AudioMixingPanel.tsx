@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Field, Check, TextInput, SelectInput, Slider } from '../ui/form-controls';
 import { PathInput } from '../ui/PathInput';
+import { WaveformDisplay, WaveformSkeleton } from '../ui/WaveformDisplay';
 import { cn } from '../../utils/cn';
 import { api } from '../../lib/api';
 import { getDeep } from '../../lib/config-path';
@@ -54,11 +55,11 @@ export function AudioMixingPanel({ config, updateConfig }: { config: any; update
     updateConfig('audio.stems', updated);
   }
   
-  function updateStemPan(index: number, pan: number) {
+  /* function _updateStemPan(index: number, pan: number) {
     const stems = getDeep(config, 'audio.stems', []);
     const updated = stems.map((s: any, i: number) => i === index ? { ...s, pan } : s);
     updateConfig('audio.stems', updated);
-  }
+  } */
   async function validateAudio() {
     setBusy(true); setMessage('Validasi audio + loudness + waveform...');
     try {
@@ -245,7 +246,25 @@ export function AudioMixingPanel({ config, updateConfig }: { config: any; update
               </ul>
             </div>
           ) : null}
-          {!!peaks.length && (
+          {peaks.length > 0 ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[var(--text-muted)]">Audio Waveform</span>
+                <span className="text-[var(--text-primary)]">{peaks.length} samples</span>
+              </div>
+              <WaveformDisplay
+                peaks={peaks}
+                duration={analysis?.info?.duration || validation?.totalDuration || 0}
+                height={60}
+                color="#38bdf8"
+                progressColor="#22c55e"
+                backgroundColor="var(--tertiary-bg)"
+                className="rounded-[var(--radius-md)] overflow-hidden border border-[var(--border-subtle)]"
+              />
+            </div>
+          ) : busy ? (
+            <WaveformSkeleton height={60} className="rounded-[var(--radius-md)]" />
+          ) : (
             <div className="flex items-end gap-px px-3 py-2 h-[48px] bg-[var(--tertiary-bg)] rounded-[var(--radius-md)]">
               {peaks.slice(0, 120).map((p: number, i: number) => (
                 <i key={i} className="w-[3px] min-h-[3px] rounded-t bg-[var(--accent-primary)]" style={{height: `${Math.max(3, p * 54)}px`}} />

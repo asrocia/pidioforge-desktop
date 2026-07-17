@@ -3,7 +3,7 @@ export function setDeep(obj: any, path: string, value: any): any {
   const out = structuredClone(obj || {})
   let current = out
   for (let index = 0; index < parts.length - 1; index++) current = current[parts[index]] ||= {}
-  current[parts.at(-1)!] = value
+  current[parts[parts.length - 1]!] = value
   return out
 }
 

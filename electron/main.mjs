@@ -74,6 +74,22 @@ async function startApi() {
   const stdout = createWriteStream(path.join(logDir, 'api.out.log'), { flags: 'a' });
   const stderr = createWriteStream(path.join(logDir, 'api.err.log'), { flags: 'a' });
 
+  // Log startup info for debugging
+  const startupInfo = {
+    timestamp: new Date().toISOString(),
+    script,
+    command,
+    resources,
+    dataDir,
+    logDir,
+    platform: process.platform,
+    arch: process.arch,
+    electronVersion: process.versions.electron,
+    nodeVersion: process.versions.node,
+    isPackaged: app.isPackaged,
+  };
+  stderr.write(`\n=== BACKEND STARTUP ${startupInfo.timestamp} ===\n${JSON.stringify(startupInfo, null, 2)}\n\n`);
+
   apiProcess = spawn(command, [script], {
     cwd: path.dirname(path.dirname(script)),
     env: {
@@ -84,6 +100,7 @@ async function startApi() {
       PIDIOFORGE_APP_DIR: app.getAppPath(),
       PIDIOFORGE_DATA_DIR: dataDir,
       PIDIOFORGE_PLATFORM_RESOURCE: platformResourceName(),
+      PIDIOFORGE_LOG_DIR: logDir,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
@@ -91,10 +108,20 @@ async function startApi() {
 
   apiProcess.stdout?.pipe(stdout);
   apiProcess.stderr?.pipe(stderr);
+  
+  let processExited = false;
+  let exitCode = null;
+  
   apiProcess.on('error', error => {
-    console.error('Backend process failed:', error);
+    console.error('Backend process spawn error:', error);
+    stderr.write(`\nBackend spawn error: ${error.message}\n${error.stack}\n`);
   });
-  apiProcess.on('exit', () => {
+  
+  apiProcess.on('exit', (code, signal) => {
+    processExited = true;
+    exitCode = code;
+    console.log(`Backend process exited with code ${code}, signal ${signal}`);
+    stderr.write(`\nBackend process exited: code=${code}, signal=${signal}\n`);
     apiProcess = undefined;
     stdout.end();
     stderr.end();
@@ -106,7 +133,12 @@ async function startApi() {
     process?.kill();
     stdout.end();
     stderr.end();
-    throw new Error(`Backend API unavailable on port ${apiPort}. Check logs in ${logDir}`);
+    
+    const errorMsg = processExited 
+      ? `Backend process exited with code ${exitCode}. Check logs in ${logDir}`
+      : `Backend API unavailable on port ${apiPort}. Check logs in ${logDir}`;
+    
+    throw new Error(errorMsg);
   }
 }
 

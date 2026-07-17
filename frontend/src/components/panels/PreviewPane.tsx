@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import { mediaKind, fileUrl, cornerPosition, nowPlayingText, copyText } from '../../utils/media';
 import { getDeep } from '../../lib/config-path';
@@ -6,11 +6,12 @@ import { api, API_BASE_URL } from '../../lib/api';
 import { cleanUiText, formatDuration, formatBytes } from '../../lib/format';
 import { queueStatusLabel } from '../../constants/modules';
 import type { ModuleKey, Job } from '../../types/app.types';
+import { RealTimePreview } from '../ui/RealTimePreview';
 
 const API = API_BASE_URL;
 
 export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig }: { active: ModuleKey; jobs: Job[]; logs: string[]; refresh: () => void; config: any; updateConfig: (path: string, value: any) => void }) {
-  const job = jobs.find(j => j.status === 'rendering') || jobs[0];
+  // const _job = jobs.find(j => j.status === 'rendering') || jobs[0];
   type LiveTarget = 'logo' | 'cta' | 'watermark' | 'nowPlaying' | 'spectrum' | 'timestamp' | 'lowerThird';
   const [previewData, setPreviewData] = useState<any>(null);
   const [previewLogs, setPreviewLogs] = useState<string[]>([]);
@@ -25,24 +26,50 @@ export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig 
   const [selectedLive, setSelectedLive] = useState<LiveTarget | ''>('');
   const [activityView, setActivityView] = useState<'queue' | 'preview'>('queue');
   const [previewMode, setPreviewMode] = useState<'live' | 'rendered'>('live');
-  const [showActivityLog, setShowActivityLog] = useState(true);
-  const [panelView, setPanelView] = useState<'preview' | 'activity' | 'status'>('preview');
-  async function startNext() { await api('/api/jobs/start-next', { method: 'POST' }).catch(e => alert(e.message)); refresh(); }
-  async function startQueue() { await api('/api/queue/start', { method: 'POST' }).catch(e => alert(e.message)); refresh(); }
-  async function reset() { if (confirm('Reset semua antrian?')) { await api('/api/jobs/reset', { method: 'POST' }); refresh(); } }
-  async function start(id: string) { await api(`/api/jobs/${id}/start`, { method: 'POST' }).catch(e => alert(e.message)); refresh(); }
-  async function cancel(id: string) { await api(`/api/jobs/${id}/cancel`, { method: 'POST' }).catch(e => alert(e.message)); refresh(); }
-  async function clearLogs() { await api('/api/logs/clear', { method: 'POST' }).catch(e => alert(e.message)); setPreviewLogs([]); refresh(); }
+  const [showActivityLog] = useState(true);
+  const [panelView, setPanelView] = useState<'preview' | 'activity' | 'status' | 'realtime'>('preview');
+  const startNext = useCallback(async () => { 
+    await api('/api/jobs/start-next', { method: 'POST' }).catch(e => alert(e.message)); 
+    refresh(); 
+  }, [refresh]);
+  
+  const startQueue = useCallback(async () => { 
+    await api('/api/queue/start', { method: 'POST' }).catch(e => alert(e.message)); 
+    refresh(); 
+  }, [refresh]);
+  
+  const reset = useCallback(async () => { 
+    if (confirm('Reset semua antrian?')) { 
+      await api('/api/jobs/reset', { method: 'POST' }); 
+      refresh(); 
+    } 
+  }, [refresh]);
+  
+  const start = useCallback(async (id: string) => { 
+    await api(`/api/jobs/${id}/start`, { method: 'POST' }).catch(e => alert(e.message)); 
+    refresh(); 
+  }, [refresh]);
+  
+  const cancel = useCallback(async (id: string) => { 
+    await api(`/api/jobs/${id}/cancel`, { method: 'POST' }).catch(e => alert(e.message)); 
+    refresh(); 
+  }, [refresh]);
+  
+  const clearLogs = useCallback(async () => { 
+    await api('/api/logs/clear', { method: 'POST' }).catch(e => alert(e.message)); 
+    setPreviewLogs([]); 
+    refresh(); 
+  }, [refresh]);
   async function revealOutput(target?: string) {
     if (!target) return;
     const result = await window.pidioforge?.revealPath(target);
     if (!result?.ok) alert(result?.error || 'Buka folder hanya tersedia di aplikasi desktop.');
   }
-  async function diagnostics() {
+  /* async function _diagnostics() {
     setBusy(true); setMessage('Memeriksa aset preview...');
     try { const data = await api('/api/preview/diagnostics', { method: 'POST', body: JSON.stringify({ config: { ...config, preview: { ...(config?.preview || {}), startAt, duration, quality, safeAreaPreset: safePreset } } }) }); setPreviewData((p: any) => ({ ...(p || {}), diagnostics: data, safeArea: data.safeArea })); setMessage(data.ok ? 'Preview asset siap.' : `Perhatian: ${(data.warnings || []).join(' ')}`); }
     catch (e: any) { setMessage(e.message); } finally { setBusy(false); }
-  }
+  } */
   async function renderPreview() {
     setBusy(true); setMessage('Merender preview...'); setPreviewLogs([]);
     try {
@@ -69,14 +96,15 @@ export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig 
     } catch (e: any) { setMessage(e.message); }
     finally { setBusy(false); }
   }
-  const previewPath = previewData?.url || getDeep(config, 'preview.lastUrl', '');
-  const previewUrl = previewPath && previewPath.startsWith('/api/') ? `${API}${previewPath}` : previewPath;
-  const snapshotPath = previewData?.snapshot?.url || getDeep(config, 'preview.lastSnapshotUrl', '');
-  const snapshotUrl = snapshotPath && snapshotPath.startsWith('/api/') ? `${API}${snapshotPath}` : snapshotPath;
-  const diag = previewData?.diagnostics;
-  const safe = previewData?.safeArea || diag?.safeArea;
-  const visual = getDeep(config, 'input.visual', '');
-  const visualType = mediaKind(visual);
+  // Memoized computed values
+  const previewPath = useMemo(() => previewData?.url || getDeep(config, 'preview.lastUrl', ''), [previewData?.url, config]);
+  const previewUrl = useMemo(() => previewPath && previewPath.startsWith('/api/') ? `${API}${previewPath}` : previewPath, [previewPath]);
+  const snapshotPath = useMemo(() => previewData?.snapshot?.url || getDeep(config, 'preview.lastSnapshotUrl', ''), [previewData?.snapshot?.url, config]);
+  const snapshotUrl = useMemo(() => snapshotPath && snapshotPath.startsWith('/api/') ? `${API}${snapshotPath}` : snapshotPath, [snapshotPath]);
+  const diag = useMemo(() => previewData?.diagnostics, [previewData?.diagnostics]);
+  const safe = useMemo(() => previewData?.safeArea || diag?.safeArea, [previewData?.safeArea, diag?.safeArea]);
+  const visual = useMemo(() => getDeep(config, 'input.visual', ''), [config]);
+  const visualType = useMemo(() => mediaKind(visual), [visual]);
   const livePreview = Boolean(visual && (visualType === 'video' || visualType === 'image'));
   const liveMediaUrl = livePreview ? fileUrl(visual) : '';
   const showRenderedPreview = Boolean(previewUrl && (!livePreview || previewMode === 'rendered'));
@@ -232,20 +260,63 @@ export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig 
   function toggleGrid() { updateConfig('preview.showGrid', !Boolean(getDeep(config, 'preview.showGrid', false))); }
   function toggleSafeArea() { updateConfig('preview.showSafeArea', !Boolean(getDeep(config, 'preview.showSafeArea', true))); }
   return <aside className="flex flex-col h-full bg-[var(--primary-bg)] overflow-hidden">
-    <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-subtle)]">
-      <div>
-        <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Pratinjau & Monitor</h2>
-        <p className="text-[12px] text-[var(--text-muted)] mt-1">Live preview dan render queue</p>
+    <div className="flex items-center justify-end px-5 py-4 border-b border-[var(--border-subtle)]">
+      <div className="flex gap-2 border-b-0">
+        <button 
+          className={cn(
+            "px-4 py-2 text-[13px] font-semibold rounded-t-lg transition-all",
+            panelView === 'preview' 
+              ? 'bg-[var(--primary-bg)] text-[var(--accent-primary)] border-t-2 border-x-2 border-[var(--accent-primary)]' 
+              : 'bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'
+          )}
+          onClick={() => setPanelView('preview')}
+        >
+          📹 Preview
+        </button>
+        <button 
+          className={cn(
+            "px-4 py-2 text-[13px] font-semibold rounded-t-lg transition-all",
+            panelView === 'activity' 
+              ? 'bg-[var(--primary-bg)] text-[var(--accent-primary)] border-t-2 border-x-2 border-[var(--accent-primary)]' 
+              : 'bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'
+          )}
+          onClick={() => setPanelView('activity')}
+        >
+          📊 Aktivitas
+        </button>
+        <button 
+          className={cn(
+            "px-4 py-2 text-[13px] font-semibold rounded-t-lg transition-all",
+            panelView === 'status' 
+              ? 'bg-[var(--primary-bg)] text-[var(--accent-primary)] border-t-2 border-x-2 border-[var(--accent-primary)]' 
+              : 'bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'
+          )}
+          onClick={() => setPanelView('status')}
+        >
+          📈 Status
+        </button>
+        <button 
+          className={cn(
+            "px-4 py-2 text-[13px] font-semibold rounded-t-lg transition-all",
+            panelView === 'realtime' 
+              ? 'bg-[var(--primary-bg)] text-[var(--accent-primary)] border-t-2 border-x-2 border-[var(--accent-primary)]' 
+              : 'bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'
+          )}
+          onClick={() => setPanelView('realtime')}
+        >
+          ⚡ Real-Time
+        </button>
       </div>
     </div>
-    <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+    <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
     <div 
       className={cn(
         "relative w-full rounded-[var(--radius-lg)] overflow-hidden border border-[var(--border-medium)] shadow-[var(--shadow-lg)]",
         livePreview || active === 'spectrum' || active === 'overlay' || active === 'branding' ? 'bg-black' : 'bg-[var(--tertiary-bg)]'
       )}
       style={{ 
-        height: '480px',
+        aspectRatio: '16/9',
+        maxHeight: '60vh',
         transform: `scale(${Number(zoom)/100})`, 
         transformOrigin: 'top center',
         transition: 'transform 0.2s ease'
@@ -416,43 +487,36 @@ export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig 
         />
       )}
     </div>
-    <div className="grid grid-cols-4 gap-3">
+    <div className="grid grid-cols-3 gap-4">
       <button 
         onClick={renderPreview} 
         disabled={busy}
-        className="px-4 py-3 bg-[var(--accent-primary)] border border-[var(--accent-primary-hover)] text-white rounded-[var(--radius-sm)] font-semibold hover:bg-[var(--accent-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        className="px-4 py-3 bg-[var(--accent-primary)] border border-[var(--accent-primary-hover)] text-white rounded-[var(--radius-md)] font-semibold hover:bg-[var(--accent-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
       >
-        Render
-      </button>
-      <button 
-        onClick={snapshotPreview} 
-        disabled={busy}
-        className="px-4 py-3 bg-[var(--accent-primary)] border border-[var(--accent-primary-hover)] text-white rounded-[var(--radius-sm)] font-semibold hover:bg-[var(--accent-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-      >
-        Snapshot
+        🎬 Render Preview
       </button>
       <button 
         onClick={sendPreviewToQueue} 
         disabled={busy}
-        className="px-4 py-3 bg-[var(--accent-success)] border border-[var(--accent-success-hover)] text-white rounded-[var(--radius-sm)] font-semibold hover:bg-[var(--accent-success-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        className="px-4 py-3 bg-[var(--accent-success)] border border-[var(--accent-success-hover)] text-white rounded-[var(--radius-md)] font-semibold hover:bg-[var(--accent-success-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
       >
-        Kirim ke Antrian
+        ➕ Kirim ke Antrian
       </button>
       <button 
-        onClick={diagnostics} 
+        onClick={snapshotPreview} 
         disabled={busy}
-        className="px-4 py-3 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-sm)] font-semibold hover:bg-[var(--surface-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        className="px-4 py-3 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] font-semibold hover:bg-[var(--surface-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
       >
-        Diagnostik
+        📸 Snapshot
       </button>
     </div>
-    <div className="grid grid-cols-4 gap-3">
+    <div className="grid grid-cols-4 gap-4">
       <label className="flex flex-col gap-2">
         <span className="text-[12px] text-[var(--text-secondary)] font-medium">Mutu</span>
         <select 
           value={quality} 
           onChange={e => setQuality(e.target.value)}
-          className="bg-[var(--surface)] border border-[var(--border-medium)] rounded-[var(--radius-sm)] text-[var(--text-primary)] text-[13px] min-h-[38px] px-3 py-2"
+          className="bg-[var(--surface)] border border-[var(--border-medium)] rounded-[var(--radius-md)] text-[var(--text-primary)] text-[13px] min-h-[40px] px-3 py-2 hover:border-[var(--accent-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all"
         >
           <option value="draft">Draf</option>
           <option value="normal">Normal</option>
@@ -464,7 +528,7 @@ export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig 
         <select 
           value={safePreset} 
           onChange={e => setSafePreset(e.target.value)}
-          className="bg-[var(--surface)] border border-[var(--border-medium)] rounded-[var(--radius-sm)] text-[var(--text-primary)] text-[13px] min-h-[38px] px-3 py-2"
+          className="bg-[var(--surface)] border border-[var(--border-medium)] rounded-[var(--radius-md)] text-[var(--text-primary)] text-[13px] min-h-[40px] px-3 py-2 hover:border-[var(--accent-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all"
         >
           <option value="youtube">YouTube</option>
           <option value="shorts">Shorts/Reels</option>
@@ -476,7 +540,7 @@ export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig 
         <select 
           value={zoom} 
           onChange={e => setZoom(e.target.value)}
-          className="bg-[var(--surface)] border border-[var(--border-medium)] rounded-[var(--radius-sm)] text-[var(--text-primary)] text-[13px] min-h-[38px] px-3 py-2"
+          className="bg-[var(--surface)] border border-[var(--border-medium)] rounded-[var(--radius-md)] text-[var(--text-primary)] text-[13px] min-h-[40px] px-3 py-2 hover:border-[var(--accent-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all"
         >
           <option>100</option>
           <option>75</option>
@@ -486,20 +550,20 @@ export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig 
       {previewUrl && livePreview && (
         <button 
           onClick={() => setPreviewMode(previewMode === 'live' ? 'rendered' : 'live')}
-          className="mt-auto px-4 py-3 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-sm)] font-semibold hover:bg-[var(--surface-hover)] transition-all"
+          className="mt-auto px-4 py-3 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all"
         >
-          {previewMode === 'live' ? 'Hasil Render' : 'Live File'}
+          {previewMode === 'live' ? '🎬 Hasil Render' : '📁 Live File'}
         </button>
       )}
     </div>
-    <div className="bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)] p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">Layer Editor</h3>
+    <div className="bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)] p-4 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">🎨 Layer Editor</h3>
         <span className="text-[12px] text-[var(--text-muted)]">
           {selectedLive ? liveLayers.find(x => x.id === selectedLive)?.label : 'Pilih layer'}
         </span>
       </div>
-      <div className="grid grid-cols-4 gap-2 mb-3">
+      <div className="grid grid-cols-4 gap-2 mb-4">
         {liveLayers.map(layer => (
           <button 
             key={layer.id} 
@@ -526,23 +590,23 @@ export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig 
           type="button" 
           onClick={() => selectedLive && centerLiveLayer(selectedLive)} 
           disabled={!selectedLive}
-          className="px-3 py-2 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-sm)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          className="px-4 py-2.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
-          Reset Posisi
+          🔄 Reset Posisi
         </button>
         <button 
           type="button" 
           onClick={toggleSafeArea}
-          className="px-3 py-2 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-sm)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] transition-all"
+          className="px-4 py-2.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all"
         >
-          {getDeep(config, 'preview.showSafeArea', true) ? 'Safe Aktif' : 'Safe Mati'}
+          {getDeep(config, 'preview.showSafeArea', true) ? '✅ Safe Aktif' : '⬜ Safe Mati'}
         </button>
         <button 
           type="button" 
           onClick={toggleGrid}
-          className="px-3 py-2 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-sm)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] transition-all"
+          className="px-4 py-2.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all"
         >
-          {getDeep(config, 'preview.showGrid', false) ? 'Grid Aktif' : 'Grid Mati'}
+          {getDeep(config, 'preview.showGrid', false) ? '✅ Grid Aktif' : '⬜ Grid Mati'}
         </button>
       </div>
     </div>
@@ -585,39 +649,39 @@ export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig 
     <div className="grid grid-cols-6 gap-2">
       <button 
         onClick={() => setStartAt(0)}
-        className="px-3 py-2 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-sm)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] transition-all"
+        className="px-4 py-2.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all"
       >
-        Intro
+        🎬 Intro
       </button>
       <button 
         onClick={() => setStartAt(15)}
-        className="px-3 py-2 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-sm)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] transition-all"
+        className="px-4 py-2.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all"
       >
         15s
       </button>
       <button 
         onClick={() => setStartAt(30)}
-        className="px-3 py-2 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-sm)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] transition-all"
+        className="px-4 py-2.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all"
       >
         30s
       </button>
       <button 
         onClick={() => setStartAt(60)}
-        className="px-3 py-2 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-sm)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] transition-all"
+        className="px-4 py-2.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all"
       >
         60s
       </button>
       <button 
         onClick={() => setStartAt(Math.max(0, startAt - 5))}
-        className="px-3 py-2 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-sm)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] transition-all"
+        className="px-4 py-2.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all"
       >
-        -5s
+        ⏪ -5s
       </button>
       <button 
         onClick={() => setStartAt(startAt + 5)}
-        className="px-3 py-2 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-sm)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] transition-all"
+        className="px-4 py-2.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all"
       >
-        +5s
+        ⏩ +5s
       </button>
     </div>
     {message && (
@@ -647,64 +711,30 @@ export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig 
         <p className="text-[11px] text-[var(--text-muted)]">{previewData?.snapshot?.output || getDeep(config, 'preview.lastSnapshotOutput', '')}</p>
       </div>
     )}
-    <div className="grid grid-cols-5 gap-3 bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)] p-4">
+    <div className="grid grid-cols-3 gap-4 bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)] p-4">
       <div className="text-center">
-        <div className="text-[16px] font-bold text-[var(--text-primary)]">{previewData?.resolution || getDeep(config, 'preview.width', 640)+'x'+getDeep(config, 'preview.height', 360)}</div>
-        <div className="text-[11px] text-[var(--text-muted)] mt-1">Resolusi</div>
+        <div className="text-[18px] font-bold text-[var(--text-primary)]">{previewData?.resolution || getDeep(config, 'preview.width', 640)+'x'+getDeep(config, 'preview.height', 360)}</div>
+        <div className="text-[12px] text-[var(--text-muted)] mt-1">📐 Resolusi</div>
       </div>
       <div className="text-center">
-        <div className="text-[16px] font-bold text-[var(--text-primary)]">{previewData?.startAt ?? startAt}s</div>
-        <div className="text-[11px] text-[var(--text-muted)] mt-1">Mulai</div>
+        <div className="text-[18px] font-bold text-[var(--text-primary)]">{previewData?.startAt ?? startAt}s → {(previewData?.startAt ?? startAt) + (previewData?.duration || duration)}s</div>
+        <div className="text-[12px] text-[var(--text-muted)] mt-1">⏱️ Timeline</div>
       </div>
       <div className="text-center">
-        <div className="text-[16px] font-bold text-[var(--text-primary)]">{previewData?.duration || duration}s</div>
-        <div className="text-[11px] text-[var(--text-muted)] mt-1">Durasi</div>
-      </div>
-      <div className="text-center">
-        <div className="text-[16px] font-bold text-[var(--text-primary)]">{safePreset}</div>
-        <div className="text-[11px] text-[var(--text-muted)] mt-1">Area Aman</div>
-      </div>
-      <div className="text-center">
-        <div className="text-[16px] font-bold text-[var(--text-primary)]">{quality}</div>
-        <div className="text-[11px] text-[var(--text-muted)] mt-1">Kualitas</div>
+        <div className="text-[18px] font-bold text-[var(--text-primary)]">{quality} / {safePreset}</div>
+        <div className="text-[12px] text-[var(--text-muted)] mt-1">⚙️ Settings</div>
       </div>
     </div>
-    <div className="flex gap-2 border-b border-[var(--border-subtle)]">
-      <button 
-        className={cn(
-          "px-4 py-3 text-[13px] font-semibold border-b-2 transition-all",
-          panelView === 'preview' 
-            ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]' 
-            : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-        )}
-        onClick={() => setPanelView('preview')}
-      >
-        Preview
-      </button>
-      <button 
-        className={cn(
-          "px-4 py-3 text-[13px] font-semibold border-b-2 transition-all",
-          panelView === 'activity' 
-            ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]' 
-            : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-        )}
-        onClick={() => setPanelView('activity')}
-      >
-        Aktivitas
-      </button>
-      <button 
-        className={cn(
-          "px-4 py-3 text-[13px] font-semibold border-b-2 transition-all",
-          panelView === 'status' 
-            ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]' 
-            : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-        )}
-        onClick={() => setPanelView('status')}
-      >
-        Status
-      </button>
-    </div>
-    {panelView === 'preview' ? (
+
+    {panelView === 'realtime' ? (
+      <div className="space-y-4">
+        <RealTimePreview 
+          config={config}
+          onError={(error) => setMessage(error)}
+          className="w-full"
+        />
+      </div>
+    ) : panelView === 'preview' ? (
       <>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">Aktivitas</h3>
@@ -916,24 +946,24 @@ export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig 
                 <button 
                   onClick={() => start(j.id)} 
                   disabled={j.status === 'rendering' || j.status === 'done'}
-                  className="px-3 py-1.5 bg-[var(--accent-success)] border border-[var(--accent-success-hover)] text-white rounded-[var(--radius-sm)] text-[11px] font-semibold hover:bg-[var(--accent-success-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="px-4 py-2 bg-[var(--accent-success)] border border-[var(--accent-success-hover)] text-white rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--accent-success-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
                 >
-                  Mulai
+                  ▶️ Mulai
                 </button>
                 {j.status === 'rendering' && (
                   <button 
                     onClick={() => cancel(j.id)}
-                    className="px-3 py-1.5 bg-[var(--accent-danger)] border border-[var(--accent-danger)] text-white rounded-[var(--radius-sm)] text-[11px] font-semibold hover:opacity-90 transition-all"
+                    className="px-4 py-2 bg-[var(--accent-danger)] border border-[var(--accent-danger)] text-white rounded-[var(--radius-md)] text-[12px] font-semibold hover:opacity-90 transition-all shadow-sm"
                   >
-                    Batal
+                    ⏹️ Batal
                   </button>
                 )}
                 {(j.output || j.outputDir) && (
                   <button 
                     onClick={() => revealOutput(j.output || j.outputDir)}
-                    className="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-sm)] text-[11px] font-semibold hover:bg-[var(--surface-hover)] transition-all"
+                    className="px-4 py-2 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all"
                   >
-                    Folder
+                    📁 Folder
                   </button>
                 )}
               </div>
