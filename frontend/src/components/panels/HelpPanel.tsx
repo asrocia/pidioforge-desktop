@@ -1,3 +1,4 @@
+import { Card } from '../ui/design-system-components';
 
 export function HelpPanel() {
   const guides = [
@@ -19,7 +20,7 @@ export function HelpPanel() {
     'Klik Kirim ke Antrian atau Tambah Job Render.',
     'Klik Mulai Antrian dan pantau Status Render.',
   ];
-  
+
   return (
     <aside className="flex flex-col h-full bg-[var(--primary-bg)] overflow-hidden">
       {/* Header */}
@@ -32,8 +33,7 @@ export function HelpPanel() {
 
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
         {/* Alur Cepat */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Alur Cepat</h3>
+        <Card title="Alur Cepat">
           <div className="space-y-2">
             {quickFlow.map((step, i) => (
               <div key={step} className="flex items-start gap-3 p-3 bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-md)]">
@@ -44,11 +44,10 @@ export function HelpPanel() {
               </div>
             ))}
           </div>
-        </div>
+        </Card>
 
         {/* Panduan Fitur */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Panduan Fitur</h3>
+        <Card title="Panduan Fitur">
           <div className="grid grid-cols-2 gap-3">
             {guides.map(([title, text]) => (
               <div key={title} className="p-3 bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] hover:border-[var(--accent-primary)]/30 transition-all duration-200">
@@ -57,11 +56,10 @@ export function HelpPanel() {
               </div>
             ))}
           </div>
-        </div>
+        </Card>
 
         {/* Tips Penting */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Tips Penting</h3>
+        <Card title="Tips Penting">
           <div className="p-3 bg-[var(--accent-warning)]/10 border-l-4 border-[var(--accent-warning)] rounded-[var(--radius-lg)] space-y-2">
             <div className="flex items-start gap-2">
               <span className="text-[var(--accent-warning)] text-[14px]">⚠</span>
@@ -76,11 +74,10 @@ export function HelpPanel() {
               <small className="text-[11px] text-[var(--text-primary)] leading-relaxed">Untuk hasil tanpa spectrum, matikan Spectrum, Progress Bar, dan Now Playing.</small>
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* Keyboard Shortcuts */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Keyboard Shortcuts</h3>
+        <Card title="Keyboard Shortcuts">
           <div className="grid grid-cols-2 gap-2">
             {[
               ['Ctrl + S', 'Save Current Config'],
@@ -100,11 +97,10 @@ export function HelpPanel() {
               </div>
             ))}
           </div>
-        </div>
+        </Card>
 
         {/* Troubleshooting */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Troubleshooting</h3>
+        <Card title="Troubleshooting">
           <div className="space-y-3">
             <div className="p-3 bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-md)]">
               <b className="text-[11px] text-[var(--accent-danger)] block mb-2">❌ FFmpeg Not Found</b>
@@ -124,11 +120,10 @@ export function HelpPanel() {
               <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">Solutions: 1) Use GPU acceleration, 2) Lower resolution/quality, 3) Reduce concurrent jobs, 4) Close other applications.</p>
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* FAQ */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Frequently Asked Questions</h3>
+        <Card title="Frequently Asked Questions">
           <div className="space-y-3">
             {[
               {
@@ -162,11 +157,10 @@ export function HelpPanel() {
               </div>
             ))}
           </div>
-        </div>
+        </Card>
 
         {/* System Requirements */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">System Requirements</h3>
+        <Card title="System Requirements">
           <div className="grid grid-cols-2 gap-3">
             <div className="p-3 bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-md)]">
               <b className="text-[11px] text-[var(--accent-success)] block mb-2">✅ Minimum</b>
@@ -189,11 +183,10 @@ export function HelpPanel() {
               </ul>
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* Video Tutorials */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Video Tutorials</h3>
+        <Card title="Video Tutorials">
           <div className="grid grid-cols-2 gap-3">
             {[
               { title: 'Getting Started', duration: '5:30', level: 'Beginner' },
@@ -215,11 +208,10 @@ export function HelpPanel() {
               </div>
             ))}
           </div>
-        </div>
+        </Card>
 
         {/* Support & Community */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Support & Community</h3>
+        <Card title="Support & Community">
           <div className="grid grid-cols-3 gap-3">
             <a href="#" className="p-3 bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] hover:border-[var(--accent-primary)]/30 transition-all duration-200 text-center">
               <div className="text-[20px] mb-2">📖</div>
@@ -237,7 +229,7 @@ export function HelpPanel() {
               <small className="text-[9px] text-[var(--text-muted)]">GitHub Issues</small>
             </a>
           </div>
-        </div>
+        </Card>
       </div>
     </aside>
   );

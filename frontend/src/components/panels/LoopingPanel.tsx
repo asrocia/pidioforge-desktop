@@ -6,6 +6,7 @@ import { fileUrl, copyText } from '../../utils/media';
 import { API_BASE_URL, api } from '../../lib/api';
 import { getDeep, setDeep } from '../../lib/config-path';
 import { cleanUiText, formatBytes, formatDuration } from '../../lib/format';
+import { Callout, Card } from '../ui/design-system-components';
 
 const API = API_BASE_URL;
 
@@ -128,36 +129,19 @@ export function LoopingPanel({ config, updateConfig }: { config: any; updateConf
     if (!opened?.ok) alert(opened?.error || 'Buka output hanya tersedia di aplikasi desktop.');
   }
   
-  return (
-    <aside className="flex flex-col h-full bg-[var(--primary-bg)] overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-subtle)]">
-        <div>
-          <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Video Looping</h2>
-          <p className="text-[12px] text-[var(--text-muted)] mt-1">Seamless video loops dengan auto-detect dan batch processing</p>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+  return (<div className="space-y-4">
         {/* Video Loop */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Video Loop</h3>
+        <Card title="Video Loop">
           <Field label="Video Pendek"><PathInput value={input} onChange={setInput} filter="video" /></Field>
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Durasi Manual Detik"><TextInput type="number" value={duration} onChange={v => setDuration(Number(v || 1))} placeholder="Isi manual, contoh 3600 untuk 1 jam" /></Field>
-            <Field label="Mode Render"><SelectInput value={mode} onChange={setMode}><option value="copy">Cepat / copy stream</option><option value="encode">Encode ulang stabil</option></SelectInput></Field>
-            <Field label="Output MP4"><PathInput value={output} onChange={setOutput} kind="save" filter="video" placeholder="Kosongkan untuk output otomatis" /></Field>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Tipe Loop"><SelectInput value={loopStyle} onChange={setLoopStyle}><option value="normal">Normal repeat</option><option value="crossfade">Crossfade halus</option><option value="pingpong">Ping-pong maju mundur</option><option value="morph">Morph blend</option><option value="optical-flow">Optical Flow</option></SelectInput></Field>
-            <Field label="Crossfade Detik"><TextInput type="number" value={crossfade} onChange={v => setCrossfade(Number(v || 0))} /></Field>
-            <Field label="Output Preset"><SelectInput value={preset} onChange={setPreset}><option value="source">Sesuai sumber</option><option value="youtube1080">YouTube 1080p</option><option value="shorts">Shorts/Reels 1080x1920</option><option value="tiktok">TikTok 1080x1920</option><option value="square">Square 1080</option><option value="wallpaper4k">Wallpaper 4K</option></SelectInput></Field>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Trim In Detik"><TextInput type="number" value={trimStart} onChange={v => setTrimStart(Number(v || 0))} /></Field>
-            <Field label="Trim Out Detik"><TextInput type="number" value={trimEnd} onChange={v => setTrimEnd(Number(v || 0))} /></Field>
-            <div className="flex items-end gap-2 pb-1"><Check label="Mute audio" checked={muteAudio} onChange={setMuteAudio} /><Check label="Fade audio" checked={audioFade} onChange={setAudioFade} /></div>
-          </div>
+          <Field label="Durasi Manual Detik"><TextInput type="number" value={duration} onChange={v => setDuration(Number(v || 1))} placeholder="Isi manual, contoh 3600 untuk 1 jam" /></Field>
+          <Field label="Mode Render"><SelectInput value={mode} onChange={setMode}><option value="copy">Cepat / copy stream</option><option value="encode">Encode ulang stabil</option></SelectInput></Field>
+          <Field label="Output MP4"><PathInput value={output} onChange={setOutput} kind="save" filter="video" placeholder="Kosongkan untuk output otomatis" /></Field>
+          <Field label="Tipe Loop"><SelectInput value={loopStyle} onChange={setLoopStyle}><option value="normal">Normal repeat</option><option value="crossfade">Crossfade halus</option><option value="pingpong">Ping-pong maju mundur</option><option value="morph">Morph blend</option><option value="optical-flow">Optical Flow</option></SelectInput></Field>
+          <Field label="Crossfade Detik"><TextInput type="number" value={crossfade} onChange={v => setCrossfade(Number(v || 0))} /></Field>
+          <Field label="Output Preset"><SelectInput value={preset} onChange={setPreset}><option value="source">Sesuai sumber</option><option value="youtube1080">YouTube 1080p</option><option value="shorts">Shorts/Reels 1080x1920</option><option value="tiktok">TikTok 1080x1920</option><option value="square">Square 1080</option><option value="wallpaper4k">Wallpaper 4K</option></SelectInput></Field>
+          <Field label="Trim In Detik"><TextInput type="number" value={trimStart} onChange={v => setTrimStart(Number(v || 0))} /></Field>
+          <Field label="Trim Out Detik"><TextInput type="number" value={trimEnd} onChange={v => setTrimEnd(Number(v || 0))} /></Field>
+          <div className="flex items-center gap-2"><Check label="Mute audio" checked={muteAudio} onChange={setMuteAudio} /><Check label="Fade audio" checked={audioFade} onChange={setAudioFade} /></div>
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={() => setDuration(60)} className="px-3 py-1.5 text-[11px] font-semibold text-[var(--text-primary)] bg-[var(--tertiary-bg)] hover:bg-[var(--tertiary-bg)]/80 border border-[var(--border-subtle)] rounded-[var(--radius-md)] transition-all duration-200">1 menit</button>
             <button onClick={() => setDuration(300)} className="px-3 py-1.5 text-[11px] font-semibold text-[var(--text-primary)] bg-[var(--tertiary-bg)] hover:bg-[var(--tertiary-bg)]/80 border border-[var(--border-subtle)] rounded-[var(--radius-md)] transition-all duration-200">5 menit</button>
@@ -169,35 +153,33 @@ export function LoopingPanel({ config, updateConfig }: { config: any; updateConf
           {/* Advanced Loop Detection */}
           <div className="mt-3 p-3 bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] space-y-3">
             <h4 className="text-[11px] font-bold text-[var(--text-primary)]">Advanced Loop Detection</h4>
-            <div className="grid grid-cols-3 gap-3">
-              <Field label="Detection Method">
-                <SelectInput value={getDeep(config, 'loop.detectionMethod', 'auto')} onChange={v => updateConfig('loop.detectionMethod', v)}>
-                  <option value="auto">Auto (All Methods)</option>
-                  <option value="motion">Motion Analysis</option>
-                  <option value="scene">Scene Detection</option>
-                  <option value="optical-flow">Optical Flow</option>
-                  <option value="color">Color Histogram</option>
-                  <option value="audio">Audio Sync</option>
-                </SelectInput>
-              </Field>
-              <Field label="Sensitivity">
-                <SelectInput value={getDeep(config, 'loop.sensitivity', 'medium')} onChange={v => updateConfig('loop.sensitivity', v)}>
-                  <option value="low">Low (Loose)</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High (Strict)</option>
-                  <option value="extreme">Extreme</option>
-                </SelectInput>
-              </Field>
-              <Field label="Min Loop Duration">
-                <TextInput type="number" value={getDeep(config, 'loop.minDuration', 2)} onChange={v => updateConfig('loop.minDuration', v)} placeholder="seconds" />
-              </Field>
-            </div>
+            <Field label="Detection Method">
+              <SelectInput value={getDeep(config, 'loop.detectionMethod', 'auto')} onChange={v => updateConfig('loop.detectionMethod', v)}>
+                <option value="auto">Auto (All Methods)</option>
+                <option value="motion">Motion Analysis</option>
+                <option value="scene">Scene Detection</option>
+                <option value="optical-flow">Optical Flow</option>
+                <option value="color">Color Histogram</option>
+                <option value="audio">Audio Sync</option>
+              </SelectInput>
+            </Field>
+            <Field label="Sensitivity">
+              <SelectInput value={getDeep(config, 'loop.sensitivity', 'medium')} onChange={v => updateConfig('loop.sensitivity', v)}>
+                <option value="low">Low (Loose)</option>
+                <option value="medium">Medium</option>
+                <option value="high">High (Strict)</option>
+                <option value="extreme">Extreme</option>
+              </SelectInput>
+            </Field>
+            <Field label="Min Loop Duration">
+              <TextInput type="number" value={getDeep(config, 'loop.minDuration', 2)} onChange={v => updateConfig('loop.minDuration', v)} placeholder="seconds" />
+            </Field>
             <Check label="Enable Motion Tracking" checked={Boolean(getDeep(config, 'loop.motionTracking', true))} onChange={v => updateConfig('loop.motionTracking', v)} />
             <Check label="Enable Scene Change Detection" checked={Boolean(getDeep(config, 'loop.sceneDetection', true))} onChange={v => updateConfig('loop.sceneDetection', v)} />
             <Check label="Enable Optical Flow Analysis" checked={Boolean(getDeep(config, 'loop.opticalFlow', false))} onChange={v => updateConfig('loop.opticalFlow', v)} />
-            <div className="px-3 py-2 bg-[var(--secondary-bg)] rounded-[var(--radius-md)] text-[10px] text-[var(--text-muted)]">
-              💡 Advanced detection menganalisis motion, scene cuts, dan optical flow untuk menemukan loop point terbaik secara otomatis.
-            </div>
+            <Callout type="tip">
+              Advanced detection menganalisis motion, scene cuts, dan optical flow untuk menemukan loop point terbaik secara otomatis.
+            </Callout>
           </div>
           
           <div className="flex items-center gap-2 flex-wrap">
@@ -237,59 +219,53 @@ export function LoopingPanel({ config, updateConfig }: { config: any; updateConf
               {analysis.warnings?.map((w: string) => <small key={w} className="block text-[var(--accent-warning)]">{w}</small>)}
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Speed Control & Time Remapping */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Speed Control & Time Remapping</h3>
+        <Card title="Speed Control & Time Remapping">
           <Check label="Enable Speed Ramping" checked={Boolean(getDeep(config, 'loop.speedRamping', false))} onChange={v => updateConfig('loop.speedRamping', v)} />
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Speed Mode">
-              <SelectInput value={getDeep(config, 'loop.speedMode', 'constant')} onChange={v => updateConfig('loop.speedMode', v)}>
-                <option value="constant">Constant</option>
-                <option value="ease-in">Ease In</option>
-                <option value="ease-out">Ease Out</option>
-                <option value="ease-in-out">Ease In-Out</option>
-                <option value="custom">Custom Curve</option>
-              </SelectInput>
-            </Field>
-            <Field label="Speed Multiplier">
-              <TextInput type="number" value={getDeep(config, 'loop.speedMultiplier', 1.0)} onChange={v => updateConfig('loop.speedMultiplier', v)} placeholder="0.5-2.0" step="0.1" />
-            </Field>
-            <Field label="Transition Duration">
-              <TextInput type="number" value={getDeep(config, 'loop.transitionDuration', 0.5)} onChange={v => updateConfig('loop.transitionDuration', v)} placeholder="seconds" step="0.1" />
-            </Field>
-          </div>
+          <Field label="Speed Mode">
+            <SelectInput value={getDeep(config, 'loop.speedMode', 'constant')} onChange={v => updateConfig('loop.speedMode', v)}>
+              <option value="constant">Constant</option>
+              <option value="ease-in">Ease In</option>
+              <option value="ease-out">Ease Out</option>
+              <option value="ease-in-out">Ease In-Out</option>
+              <option value="custom">Custom Curve</option>
+            </SelectInput>
+          </Field>
+          <Field label="Speed Multiplier">
+            <TextInput type="number" value={getDeep(config, 'loop.speedMultiplier', 1.0)} onChange={v => updateConfig('loop.speedMultiplier', v)} placeholder="0.5-2.0" step="0.1" />
+          </Field>
+          <Field label="Transition Duration">
+            <TextInput type="number" value={getDeep(config, 'loop.transitionDuration', 0.5)} onChange={v => updateConfig('loop.transitionDuration', v)} placeholder="seconds" step="0.1" />
+          </Field>
           <Check label="Slow Motion at Loop Point" checked={Boolean(getDeep(config, 'loop.slowMotion', false))} onChange={v => updateConfig('loop.slowMotion', v)} />
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Slow Motion Speed">
-              <TextInput type="number" value={getDeep(config, 'loop.slowMotionSpeed', 0.5)} onChange={v => updateConfig('loop.slowMotionSpeed', v)} placeholder="0.1-0.9" step="0.1" />
-            </Field>
-            <Field label="Slow Motion Duration">
-              <TextInput type="number" value={getDeep(config, 'loop.slowMotionDuration', 1.0)} onChange={v => updateConfig('loop.slowMotionDuration', v)} placeholder="seconds" step="0.1" />
-            </Field>
-          </div>
+          <Field label="Slow Motion Speed">
+            <TextInput type="number" value={getDeep(config, 'loop.slowMotionSpeed', 0.5)} onChange={v => updateConfig('loop.slowMotionSpeed', v)} placeholder="0.1-0.9" step="0.1" />
+          </Field>
+          <Field label="Slow Motion Duration">
+            <TextInput type="number" value={getDeep(config, 'loop.slowMotionDuration', 1.0)} onChange={v => updateConfig('loop.slowMotionDuration', v)} placeholder="seconds" step="0.1" />
+          </Field>
           <Check label="Frame Blending (Smooth Slow-Mo)" checked={Boolean(getDeep(config, 'loop.frameBlending', true))} onChange={v => updateConfig('loop.frameBlending', v)} />
-          <div className="px-3 py-2 bg-[var(--tertiary-bg)] rounded-[var(--radius-md)] text-[10px] text-[var(--text-muted)]">
-            💡 Speed ramping membuat transisi loop lebih halus dengan memperlambat atau mempercepat video di titik sambungan.
-          </div>
-        </div>
+          <Callout type="tip">
+            Speed ramping membuat transisi loop lebih halus dengan memperlambat atau mempercepat video di titik sambungan.
+          </Callout>
+        </Card>
 
         {/* Visual Timeline Editor */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Visual Timeline Editor</h3>
+        <Card title="Visual Timeline Editor">
           <div className="relative h-24 bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] overflow-hidden">
             {/* Timeline visualization */}
             <div className="absolute inset-0 flex items-center px-2">
-              <div className="flex-1 h-12 bg-gradient-to-r from-blue-500/20 via-green-500/20 to-blue-500/20 rounded relative">
+              <div className="flex-1 h-12 rounded relative" style={{ background: 'linear-gradient(90deg, rgba(59,130,246,0.2), rgba(16,185,129,0.2), rgba(59,130,246,0.2))' }}>
                 {/* Trim markers */}
-                <div 
-                  className="absolute top-0 bottom-0 w-1 bg-yellow-500 cursor-ew-resize"
+                <div
+                  className="absolute top-0 bottom-0 w-1 bg-[var(--accent-warning)] cursor-ew-resize"
                   style={{ left: `${(trimStart / 10) * 100}%` }}
                   title="Trim Start"
                 />
-                <div 
-                  className="absolute top-0 bottom-0 w-1 bg-red-500 cursor-ew-resize"
+                <div
+                  className="absolute top-0 bottom-0 w-1 bg-[var(--accent-danger)] cursor-ew-resize"
                   style={{ left: `${100 - (trimEnd / 10) * 100}%` }}
                   title="Trim End"
                 />
@@ -313,15 +289,14 @@ export function LoopingPanel({ config, updateConfig }: { config: any; updateConf
             <span>•</span>
             <span>Loops needed: {Math.ceil(duration / (10 - trimStart - trimEnd))}</span>
           </div>
-          <div className="px-3 py-2 bg-[var(--tertiary-bg)] rounded-[var(--radius-md)] text-[10px] text-[var(--text-muted)]">
-            💡 Drag markers di timeline atau gunakan tombol untuk fine-tune loop points. Yellow = Start, Red = End.
-          </div>
-        </div>
+          <Callout type="tip">
+            Drag markers di timeline atau gunakan tombol untuk fine-tune loop points. Warning = Start, Error = End.
+          </Callout>
+        </Card>
 
         {/* Preview Sambungan */}
         {seamPreview && (
-          <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-            <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Preview Sambungan</h3>
+          <Card title="Preview Sambungan">
             <div className="grid grid-cols-2 gap-3">
               {fileUrl(input) && <video className="w-full rounded-[var(--radius-md)] border border-[var(--border-subtle)]" src={fileUrl(input)} controls muted />}
               {seamUrl && <video className="w-full rounded-[var(--radius-md)] border border-[var(--border-subtle)]" src={seamUrl} controls autoPlay loop />}
@@ -332,13 +307,12 @@ export function LoopingPanel({ config, updateConfig }: { config: any; updateConf
                 <span className="text-[10px] text-[var(--text-muted)]">{seamPreview.quality.label}</span>
               </div>
             )}
-          </div>
+          </Card>
         )}
 
         {/* Loop Quality Scoring */}
         {analysis && (
-          <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-            <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Loop Quality Scoring</h3>
+          <Card title="Loop Quality Scoring">
             
             {/* Overall Score */}
             <div className="p-3 bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-md)]">
@@ -422,48 +396,42 @@ export function LoopingPanel({ config, updateConfig }: { config: any; updateConf
                 </ul>
               </div>
             )}
-          </div>
+          </Card>
         )}
 
         {/* Audio Sync */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Audio Sync & Beat Matching</h3>
+        <Card title="Audio Sync & Beat Matching">
           <Check label="Enable Audio Sync" checked={Boolean(getDeep(config, 'loop.audioSync', false))} onChange={v => updateConfig('loop.audioSync', v)} />
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Sync Mode">
-              <SelectInput value={getDeep(config, 'loop.audioSyncMode', 'beat')} onChange={v => updateConfig('loop.audioSyncMode', v)}>
-                <option value="beat">Beat Detection</option>
-                <option value="bar">Bar/Measure</option>
-                <option value="phrase">Phrase</option>
-                <option value="manual">Manual BPM</option>
-              </SelectInput>
-            </Field>
-            <Field label="BPM (Manual)">
-              <TextInput type="number" value={getDeep(config, 'loop.bpm', 120)} onChange={v => updateConfig('loop.bpm', v)} placeholder="60-200" />
-            </Field>
-            <Field label="Beat Offset">
-              <TextInput type="number" value={getDeep(config, 'loop.beatOffset', 0)} onChange={v => updateConfig('loop.beatOffset', v)} placeholder="ms" step="10" />
-            </Field>
-          </div>
+          <Field label="Sync Mode">
+            <SelectInput value={getDeep(config, 'loop.audioSyncMode', 'beat')} onChange={v => updateConfig('loop.audioSyncMode', v)}>
+              <option value="beat">Beat Detection</option>
+              <option value="bar">Bar/Measure</option>
+              <option value="phrase">Phrase</option>
+              <option value="manual">Manual BPM</option>
+            </SelectInput>
+          </Field>
+          <Field label="BPM (Manual)">
+            <TextInput type="number" value={getDeep(config, 'loop.bpm', 120)} onChange={v => updateConfig('loop.bpm', v)} placeholder="60-200" />
+          </Field>
+          <Field label="Beat Offset">
+            <TextInput type="number" value={getDeep(config, 'loop.beatOffset', 0)} onChange={v => updateConfig('loop.beatOffset', v)} placeholder="ms" step="10" />
+          </Field>
           <Check label="Snap Loop to Beat Grid" checked={Boolean(getDeep(config, 'loop.snapToBeat', true))} onChange={v => updateConfig('loop.snapToBeat', v)} />
           <Check label="Quantize Loop Duration" checked={Boolean(getDeep(config, 'loop.quantizeDuration', false))} onChange={v => updateConfig('loop.quantizeDuration', v)} />
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Audio Fade In">
-              <TextInput type="number" value={getDeep(config, 'loop.audioFadeIn', 0.1)} onChange={v => updateConfig('loop.audioFadeIn', v)} placeholder="seconds" step="0.1" />
-            </Field>
-            <Field label="Audio Fade Out">
-              <TextInput type="number" value={getDeep(config, 'loop.audioFadeOut', 0.1)} onChange={v => updateConfig('loop.audioFadeOut', v)} placeholder="seconds" step="0.1" />
-            </Field>
-          </div>
-          <div className="px-3 py-2 bg-[var(--tertiary-bg)] rounded-[var(--radius-md)] text-[10px] text-[var(--text-muted)]">
-            💡 Audio sync memastikan loop point selaras dengan beat musik untuk hasil yang lebih natural dan musikal.
-          </div>
-        </div>
+          <Field label="Audio Fade In">
+            <TextInput type="number" value={getDeep(config, 'loop.audioFadeIn', 0.1)} onChange={v => updateConfig('loop.audioFadeIn', v)} placeholder="seconds" step="0.1" />
+          </Field>
+          <Field label="Audio Fade Out">
+            <TextInput type="number" value={getDeep(config, 'loop.audioFadeOut', 0.1)} onChange={v => updateConfig('loop.audioFadeOut', v)} placeholder="seconds" step="0.1" />
+          </Field>
+          <Callout type="tip">
+            Audio sync memastikan loop point selaras dengan beat musik untuk hasil yang lebih natural dan musikal.
+          </Callout>
+        </Card>
 
         {/* Hasil Loop */}
         {result && (
-          <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-            <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Hasil Loop</h3>
+          <Card title="Hasil Loop">
             <div className="flex flex-col gap-1">
               <b className="text-[10px] text-[var(--text-primary)]">Output: {result.output}</b>
               <span className="text-[9px] text-[var(--text-muted)]">Input {Number(result.inputDuration || 0).toFixed(2)}s jadi {result.duration}s</span>
@@ -476,12 +444,11 @@ export function LoopingPanel({ config, updateConfig }: { config: any; updateConf
               <button onClick={() => { updateConfig('input.visual', result.output); setMessage('Output loop dipakai sebagai visual utama.'); }} className="px-3 py-1.5 text-[11px] font-semibold text-[var(--text-primary)] bg-[var(--tertiary-bg)] hover:bg-[var(--tertiary-bg)]/80 border border-[var(--border-subtle)] rounded-[var(--radius-md)] transition-all duration-200">Pakai Sebagai Visual</button>
               <button onClick={sendLoopToQueue} className="px-3 py-1.5 text-[11px] font-semibold text-white bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 rounded-[var(--radius-md)] transition-all duration-200">Kirim ke Queue</button>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Batch Looping */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Batch Looping</h3>
+        <Card title="Batch Looping">
           <textarea className="w-full bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] text-[var(--text-primary)] text-[11px] min-h-[56px] px-3 py-2 resize-y font-mono focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50" value={batchText} onChange={e => setBatchText(e.target.value)} placeholder="Satu path file atau folder per baris" />
           <Field label="Folder Output Batch"><PathInput value={batchOutput} onChange={setBatchOutput} kind="directory" placeholder="Kosongkan untuk folder otomatis" /></Field>
           <button onClick={renderBatch} disabled={busy || !batchText.trim()} className="w-full px-3 py-2 text-[11px] font-semibold text-white bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-[var(--radius-md)] transition-all duration-200">Proses Batch Looping</button>
@@ -493,8 +460,6 @@ export function LoopingPanel({ config, updateConfig }: { config: any; updateConf
               <span className="text-[9px] text-[var(--text-muted)] block">Scan {batchResult.scanned || 0} file{batchResult.limited ? ' / dibatasi' : ''}</span>
             </div>
           )}
-        </div>
-      </div>
-    </aside>
-  );
+        </Card>
+      </div>);
 }

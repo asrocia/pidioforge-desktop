@@ -21,8 +21,22 @@ export default tseslint.config(
   },
   {
     files: ['backend/**/*.mjs', 'tools/**/*.mjs', 'electron/**/*.{mjs,cjs}'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        Buffer: 'readonly',
+        console: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        setTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearTimeout: 'readonly',
+        clearInterval: 'readonly',
+      },
+    },
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
+      'no-useless-escape': 'warn',
     },
   },
   {

@@ -156,7 +156,7 @@ export function TemplatesPanel({ config }: { config: any; updateConfig: (path: s
 
               <div>
                 <label className="block text-[13px] text-[var(--text-secondary)] mb-2">Modul yang Disertakan</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-2">
                   {moduleOptions.map(({ key, label }) => (
                     <label key={key} className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -181,7 +181,7 @@ export function TemplatesPanel({ config }: { config: any; updateConfig: (path: s
             <button
               onClick={createTemplate}
               disabled={busy || !newTemplate.name}
-              className="w-full px-4 py-2.5 bg-[var(--accent-success)] hover:bg-[var(--accent-success-hover)] text-white rounded-[var(--radius-sm)] text-[13px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-4 py-2.5 bg-[var(--accent-primary)] hover:bg-[var(--accent-primary-hover)] text-white rounded-[var(--radius-sm)] text-[13px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {busy ? 'Menyimpan...' : 'Simpan Template'}
             </button>

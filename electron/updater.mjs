@@ -45,9 +45,16 @@ export function setupAutoUpdater(win) {
   });
 
   autoUpdater.on('error', err => {
+    const msg = err?.message || '';
+    // Silent fail for 404 (no release published yet) or network errors
+    const isReleaseMissing = msg.includes('404') || msg.includes('net::');
+    if (isReleaseMissing) {
+      console.log('[updater] Release not found, skipping update check');
+      return;
+    }
     sendToRenderer('updater:status', {
       status: 'error',
-      error: err?.message || 'Update check failed',
+      error: msg || 'Update check failed',
     });
   });
 

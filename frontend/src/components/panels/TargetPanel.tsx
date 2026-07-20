@@ -7,6 +7,8 @@ import { humanSize } from '../../utils/media';
 import { api } from '../../lib/api';
 import { getDeep } from '../../lib/config-path';
 import { detectTargetFormat } from '../../utils/format-presets';
+import { showToast } from '../ui/Toast';
+import { Callout, Card, StatRow } from '../ui/design-system-components';
 
 type MediaFile = { path: string; name: string; size: number; type: string; modifiedAt?: string };
 type MediaPair = { title: string; visual: string; audio: string; lyrics?: string; index?: number; outputName?: string; confidence?: number; pairReason?: string; lyricConfidence?: number; lyricReason?: string };
@@ -26,16 +28,46 @@ export function TargetPanel({ config, updateConfig }: { config: any; updateConfi
       const data = await api('/api/target/inspect', { method: 'POST', body: JSON.stringify({ config, recursive: true, maxDepth: 4, validateMedia: true }) });
       setScan({ files: data.files || [], pairs: data.pairs || [], summary: data.summary, diagnostics: data.diagnostics });
       const encoderWarn = data.diagnostics?.ffmpeg ? '' : ' FFmpeg belum terdeteksi.';
-      setMessage(data.summary?.ready ? `Target siap render.${encoderWarn}` : `Perlu dilengkapi: ${(data.summary?.errors || []).join(' ')}${encoderWarn}`);
-    } catch (e: any) { setMessage(e.message); }
+      const msg = data.summary?.ready ? `Target siap render.${encoderWarn}` : `Perlu dilengkapi: ${(data.summary?.errors || []).join(' ')}${encoderWarn}`;
+      setMessage(msg);
+      
+      if (!data.diagnostics?.ffmpeg) {
+        showToast('error', 'FFmpeg tidak ditemukan! Install FFmpeg untuk melanjutkan.');
+      } else if (data.summary?.ready) {
+        showToast('success', 'Target siap untuk render!');
+      } else if (data.summary?.errors?.length > 0) {
+        showToast('warning', `Perlu dilengkapi: ${data.summary.errors.join(', ')}`);
+      }
+    } catch (e: any) { 
+      setMessage(e.message);
+      showToast('error', `Gagal memindai: ${e.message}`);
+    }
     finally { setBusy(false); }
   }
   async function createBatch() {
+    if (!hasVisual) {
+      showToast('error', 'Pilih file visual terlebih dahulu!');
+      return;
+    }
+    if (!hasAudio) {
+      showToast('error', 'Pilih file audio terlebih dahulu!');
+      return;
+    }
+    if (scan.pairs.length === 0) {
+      showToast('warning', 'Tidak ada pasangan audio/visual. Jalankan Scan & Cek terlebih dahulu.');
+      return;
+    }
+    
     setBusy(true); setMessage('Membuat batch...');
     try {
       const data = await api('/api/target/create-batch', { method: 'POST', body: JSON.stringify({ config, files: scan.files, pairs: scan.pairs }) });
-      setMessage(`${data.created?.length || 0} job berhasil dibuat dari pasangan audio/visual.`);
-    } catch (e: any) { setMessage(e.message); }
+      const count = data.created?.length || 0;
+      setMessage(`${count} job berhasil dibuat dari pasangan audio/visual.`);
+      showToast('success', `${count} job batch berhasil dibuat!`);
+    } catch (e: any) { 
+      setMessage(e.message);
+      showToast('error', `Gagal membuat batch: ${e.message}`);
+    }
     finally { setBusy(false); }
   }
   async function createStructure() {
@@ -73,16 +105,7 @@ export function TargetPanel({ config, updateConfig }: { config: any; updateConfi
   const hasAudio = Boolean(getDeep(config, 'input.audio'));
   const targetFormat = detectTargetFormat(config);
   return (
-    <aside className="flex flex-col h-full bg-[var(--primary-bg)] overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-subtle)]">
-        <div>
-          <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Target & Workflow</h2>
-          <p className="text-[12px] text-[var(--text-muted)] mt-1">Konfigurasi input, output, dan batch rendering</p>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+    <div className="space-y-4">
         {/* Workflow Progress */}
         <div className="flex items-center gap-2 text-[11px] font-semibold px-4 py-3 bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)] overflow-x-auto">
         {[
@@ -103,8 +126,7 @@ export function TargetPanel({ config, updateConfig }: { config: any; updateConfi
         </div>
 
         {/* Input Utama */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Input Utama</h3>
+        <Card title="Input Utama">
           <Field label="File Visual"><PathInput value={getDeep(config, 'input.visual')} onChange={v => updateConfig('input.visual', v)} filter="visual" /></Field>
           
           {/* Drag & Drop for Visual */}
@@ -155,7 +177,7 @@ export function TargetPanel({ config, updateConfig }: { config: any; updateConfi
           
           <Field label="Judul Default"><TextInput value={getDeep(config, 'input.title')} onChange={v => updateConfig('input.title', v)} placeholder="Judul video" /></Field>
           <Field label="Output Folder"><PathInput value={getDeep(config, 'input.output')} onChange={v => updateConfig('input.output', v)} placeholder="Hasil" kind="directory" /></Field>
-        </div>
+        </Card>
 
         {/* Batch Folder */}
         <div className="p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
@@ -172,11 +194,9 @@ export function TargetPanel({ config, updateConfig }: { config: any; updateConfi
               <Field label="Folder Visual"><PathInput value={getDeep(config, 'input.visualFolder')} onChange={v => updateConfig('input.visualFolder', v)} placeholder="Opsional: folder video/gambar" kind="directory" /></Field>
               <Field label="Folder Audio"><PathInput value={getDeep(config, 'input.audioFolder')} onChange={v => updateConfig('input.audioFolder', v)} placeholder="Opsional: folder mp3/wav" kind="directory" /></Field>
               <Field label="Folder Lirik"><PathInput value={getDeep(config, 'input.lyricFolder')} onChange={v => updateConfig('input.lyricFolder', v)} placeholder="Opsional: folder .lrc/.srt" kind="directory" /></Field>
-              <div className="grid grid-cols-3 gap-3">
-                <Field label="Pair Mode"><SelectInput value={getDeep(config, 'input.pairMode', 'by-name')} onChange={v => updateConfig('input.pairMode', v)}><option value="by-name">Nama/Fuzzy</option><option value="by-order">Urutan</option><option value="random-visual">Visual acak/audio</option><option value="one-audio-all-visual">1 audio semua visual</option></SelectInput></Field>
-                <Field label="Ignore Words"><TextInput value={getDeep(config, 'input.ignoreWords', '')} onChange={v => updateConfig('input.ignoreWords', v)} /></Field>
-                <Field label="Output Pattern"><TextInput value={getDeep(config, 'target.outputPattern', '{title}-{date}-{num}')} onChange={v => updateConfig('target.outputPattern', v)} /></Field>
-              </div>
+              <Field label="Pair Mode"><SelectInput value={getDeep(config, 'input.pairMode', 'by-name')} onChange={v => updateConfig('input.pairMode', v)}><option value="by-name">Nama/Fuzzy</option><option value="by-order">Urutan</option><option value="random-visual">Visual acak/audio</option><option value="one-audio-all-visual">1 audio semua visual</option></SelectInput></Field>
+              <Field label="Ignore Words"><TextInput value={getDeep(config, 'input.ignoreWords', '')} onChange={v => updateConfig('input.ignoreWords', v)} /></Field>
+              <Field label="Output Pattern"><TextInput value={getDeep(config, 'target.outputPattern', '{title}-{date}-{num}')} onChange={v => updateConfig('target.outputPattern', v)} /></Field>
               <Check label="Auto-pair berdasarkan nama/fuzzy" checked={Boolean(getDeep(config, 'input.autoPairByName', true))} onChange={v => updateConfig('input.autoPairByName', v)} />
               <Check label="Exclude folder output saat scan" checked={Boolean(getDeep(config, 'input.excludeOutputOnScan', true))} onChange={v => updateConfig('input.excludeOutputOnScan', v)} />
             </div>
@@ -184,8 +204,7 @@ export function TargetPanel({ config, updateConfig }: { config: any; updateConfi
         </div>
 
         {/* Platform Presets */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Platform Presets</h3>
+        <Card title="Platform Presets">
           <Field label="Target Platform">
             <SelectInput value={getDeep(config, 'target.platform', 'custom')} onChange={v => {
               updateConfig('target.platform', v);
@@ -246,201 +265,87 @@ export function TargetPanel({ config, updateConfig }: { config: any; updateConfi
             </ul>
           </div>
           <Check label="Auto-optimize for selected platform" checked={Boolean(getDeep(config, 'target.autoOptimize', true))} onChange={v => updateConfig('target.autoOptimize', v)} />
-        </div>
+        </Card>
 
         {/* Pengaturan Render */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Pengaturan Render</h3>
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Mode Video"><SelectInput value={getDeep(config, 'target.modeVideo')} onChange={v => updateConfig('target.modeVideo', v)}><option>Video/Gambar tetap</option><option>Visual berulang</option><option>Visual acak</option></SelectInput></Field>
-            <Field label="Render"><SelectInput value={getDeep(config, 'target.modeRender')} onChange={v => updateConfig('target.modeRender', v)}><option>FFmpeg</option><option>GPU otomatis</option><option>CPU aman</option></SelectInput></Field>
-            <Field label="Hardware"><SelectInput value={getDeep(config, 'target.hardwareAccel', 'auto')} onChange={v => updateConfig('target.hardwareAccel', v)}><option>auto</option><option>cpu</option><option>nvidia</option><option>intel</option><option>amd</option></SelectInput></Field>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Resolusi"><SelectInput value={getDeep(config, 'target.resolution', '1280x720')} onChange={v => { const [w, h] = v.split('x').map(Number); updateConfig('target.resolution', v); updateConfig('target.width', w); updateConfig('target.height', h); }}><option>1280x720</option><option>1920x1080</option><option>1080x1920</option><option>1080x1080</option></SelectInput></Field>
-            <Field label="FPS"><TextInput type="number" value={getDeep(config, 'target.fps', 30)} onChange={v => updateConfig('target.fps', v)} /></Field>
-            <Field label="Bitrate"><TextInput value={getDeep(config, 'target.bitrate')} onChange={v => updateConfig('target.bitrate', v)} /></Field>
-          </div>
+        <Card title="Pengaturan Render">
+          <Field label="Resolusi"><SelectInput value={getDeep(config, 'target.resolution', '1280x720')} onChange={v => { const [w, h] = v.split('x').map(Number); updateConfig('target.resolution', v); updateConfig('target.width', w); updateConfig('target.height', h); }}><option>1280x720</option><option>1920x1080</option><option>1080x1920</option><option>1080x1080</option></SelectInput></Field>
+          <Field label="FPS"><TextInput type="number" value={getDeep(config, 'target.fps', 30)} onChange={v => updateConfig('target.fps', v)} /></Field>
+          <Field label="Bitrate"><TextInput value={getDeep(config, 'target.bitrate')} onChange={v => updateConfig('target.bitrate', v)} /></Field>
+          <Field label="Codec"><SelectInput value={getDeep(config, 'target.videoCodec', 'h264')} onChange={v => updateConfig('target.videoCodec', v)}><option value="h264">H.264 (Universal)</option><option value="h265">H.265/HEVC (Smaller)</option><option value="vp9">VP9 (Web)</option><option value="av1">AV1 (Future)</option></SelectInput></Field>
           <div className="flex items-center gap-3 px-3 py-2 bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] text-[11px]">
             <span className="font-semibold text-[var(--text-primary)]">Format:</span>
             <span className="text-[var(--accent-primary)]">{targetFormat === 'vertical' ? '9:16 Vertical' : targetFormat === 'square' ? '1:1 Square' : '16:9 Landscape'}</span>
             <span className="text-[var(--text-muted)]">Preset Spectrum/Overlay mengikuti format ini.</span>
           </div>
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Durasi Target"><TextInput type="number" value={getDeep(config, 'target.duration', 0)} onChange={v => updateConfig('target.duration', v)} /></Field>
-            <Field label="Max Zoom"><TextInput type="number" value={getDeep(config, 'target.maxZoom', 110)} onChange={v => updateConfig('target.maxZoom', v)} /></Field>
-            <Field label="Speed"><TextInput type="number" value={getDeep(config, 'target.speed', 100)} onChange={v => updateConfig('target.speed', v)} /></Field>
-          </div>
-          <Field label="Mutu"><SelectInput value={getDeep(config, 'target.quality', 'balanced')} onChange={v => updateConfig('target.quality', v)}><option value="fast">Pratinjau Cepat</option><option value="balanced">Seimbang</option><option value="high">Kualitas Tinggi</option></SelectInput></Field>
-          <Check label="Timpa output lama jika nama sama" checked={Boolean(getDeep(config, 'target.overwrite', false))} onChange={v => updateConfig('target.overwrite', v)} />
-          
-          {/* Encoding Profiles */}
-          <div className="mt-3 p-3 bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] space-y-3">
-            <h4 className="text-[11px] font-bold text-[var(--text-primary)]">Encoding Profiles</h4>
-            <div className="grid grid-cols-3 gap-3">
-              <Field label="Video Codec">
-                <SelectInput value={getDeep(config, 'target.videoCodec', 'h264')} onChange={v => updateConfig('target.videoCodec', v)}>
-                  <option value="h264">H.264 (Universal)</option>
-                  <option value="h265">H.265/HEVC (Smaller)</option>
-                  <option value="vp9">VP9 (Web)</option>
-                  <option value="av1">AV1 (Future)</option>
-                </SelectInput>
-              </Field>
-              <Field label="Audio Codec">
-                <SelectInput value={getDeep(config, 'target.audioCodec', 'aac')} onChange={v => updateConfig('target.audioCodec', v)}>
-                  <option value="aac">AAC (Universal)</option>
-                  <option value="mp3">MP3 (Compatible)</option>
-                  <option value="opus">Opus (Efficient)</option>
-                  <option value="vorbis">Vorbis (Open)</option>
-                </SelectInput>
-              </Field>
-              <Field label="Container">
-                <SelectInput value={getDeep(config, 'target.container', 'mp4')} onChange={v => updateConfig('target.container', v)}>
-                  <option value="mp4">MP4</option>
-                  <option value="mkv">MKV</option>
-                  <option value="webm">WebM</option>
-                  <option value="mov">MOV</option>
-                </SelectInput>
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Encoding Preset">
-                <SelectInput value={getDeep(config, 'target.encodingPreset', 'medium')} onChange={v => updateConfig('target.encodingPreset', v)}>
-                  <option value="ultrafast">Ultrafast (Low Quality)</option>
-                  <option value="superfast">Superfast</option>
-                  <option value="veryfast">Very Fast</option>
-                  <option value="faster">Faster</option>
-                  <option value="fast">Fast</option>
-                  <option value="medium">Medium (Balanced)</option>
-                  <option value="slow">Slow (Better)</option>
-                  <option value="slower">Slower</option>
-                  <option value="veryslow">Very Slow (Best)</option>
-                </SelectInput>
-              </Field>
-              <Field label="Tune">
-                <SelectInput value={getDeep(config, 'target.tune', 'none')} onChange={v => updateConfig('target.tune', v)}>
-                  <option value="none">None</option>
-                  <option value="film">Film</option>
-                  <option value="animation">Animation</option>
-                  <option value="grain">Grain</option>
-                  <option value="stillimage">Still Image</option>
-                  <option value="fastdecode">Fast Decode</option>
-                </SelectInput>
-              </Field>
-            </div>
-          </div>
-
-          {/* Quality Presets */}
-          <div className="mt-3 p-3 bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] space-y-3">
-            <h4 className="text-[11px] font-bold text-[var(--text-primary)]">Quality Presets</h4>
-            <div className="flex gap-2 flex-wrap">
-              <button onClick={() => {
-                updateConfig('target.quality', 'fast');
-                updateConfig('target.crf', 28);
-                updateConfig('target.encodingPreset', 'veryfast');
-                updateConfig('target.bitrate', '2M');
-              }} className="px-3 py-1.5 text-[11px] font-semibold text-[var(--text-primary)] bg-[var(--tertiary-bg)] hover:bg-[var(--tertiary-bg)]/80 border border-[var(--border-subtle)] rounded-[var(--radius-md)] transition-all duration-200">
-                🚀 Draft (Fast)
-              </button>
-              <button onClick={() => {
-                updateConfig('target.quality', 'balanced');
-                updateConfig('target.crf', 23);
-                updateConfig('target.encodingPreset', 'medium');
-                updateConfig('target.bitrate', '5M');
-              }} className="px-3 py-1.5 text-[11px] font-semibold text-[var(--text-primary)] bg-[var(--tertiary-bg)] hover:bg-[var(--tertiary-bg)]/80 border border-[var(--border-subtle)] rounded-[var(--radius-md)] transition-all duration-200">
-                ⚖️ Balanced
-              </button>
-              <button onClick={() => {
-                updateConfig('target.quality', 'high');
-                updateConfig('target.crf', 18);
-                updateConfig('target.encodingPreset', 'slow');
-                updateConfig('target.bitrate', '8M');
-              }} className="px-3 py-1.5 text-[11px] font-semibold text-[var(--text-primary)] bg-[var(--tertiary-bg)] hover:bg-[var(--tertiary-bg)]/80 border border-[var(--border-subtle)] rounded-[var(--radius-md)] transition-all duration-200">
-                💎 High Quality
-              </button>
-              <button onClick={() => {
-                updateConfig('target.quality', 'archive');
-                updateConfig('target.crf', 15);
-                updateConfig('target.encodingPreset', 'veryslow');
-                updateConfig('target.bitrate', '12M');
-              }} className="px-3 py-1.5 text-[11px] font-semibold text-[var(--text-primary)] bg-[var(--tertiary-bg)] hover:bg-[var(--tertiary-bg)]/80 border border-[var(--border-subtle)] rounded-[var(--radius-md)] transition-all duration-200">
-                📦 Archive
-              </button>
-            </div>
-          </div>
-
           <button
             onClick={() => setAdvanced(!advanced)}
             className="w-full flex items-center justify-between px-3 py-2 text-[12px] font-semibold text-[var(--text-primary)] hover:text-[var(--accent-primary)] bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] transition-colors duration-200"
           >
-            <span>Pengaturan Lanjutan</span>
+            <span>Advanced Settings</span>
             <span className="text-[var(--text-muted)]">{advanced ? '▲' : '▼'}</span>
           </button>
           {advanced && (
             <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] space-y-3">
-              <div className="grid grid-cols-3 gap-3">
-                <Field label="CRF"><TextInput type="number" value={getDeep(config, 'target.crf', 22)} onChange={v => updateConfig('target.crf', v)} /></Field>
-                <Field label="Pixel Format"><SelectInput value={getDeep(config, 'target.pixelFormat', 'yuv420p')} onChange={v => updateConfig('target.pixelFormat', v)}><option>yuv420p</option><option>yuv444p</option></SelectInput></Field>
-                <Field label="Audio Bitrate"><TextInput value={getDeep(config, 'audio.audioBitrate', '192k')} onChange={v => updateConfig('audio.audioBitrate', v)} /></Field>
+              <Field label="Mode Video"><SelectInput value={getDeep(config, 'target.modeVideo')} onChange={v => updateConfig('target.modeVideo', v)}><option>Video/Gambar tetap</option><option>Visual berulang</option><option>Visual acak</option></SelectInput></Field>
+              <Field label="Render"><SelectInput value={getDeep(config, 'target.modeRender')} onChange={v => updateConfig('target.modeRender', v)}><option>FFmpeg</option><option>GPU otomatis</option><option>CPU aman</option></SelectInput></Field>
+              <Field label="Hardware"><SelectInput value={getDeep(config, 'target.hardwareAccel', 'auto')} onChange={v => updateConfig('target.hardwareAccel', v)}><option>auto</option><option>cpu</option><option>nvidia</option><option>intel</option><option>amd</option></SelectInput></Field>
+              <Field label="Durasi Target"><TextInput type="number" value={getDeep(config, 'target.duration', 0)} onChange={v => updateConfig('target.duration', v)} /></Field>
+              <Field label="Max Zoom"><TextInput type="number" value={getDeep(config, 'target.maxZoom', 110)} onChange={v => updateConfig('target.maxZoom', v)} /></Field>
+              <Field label="Speed"><TextInput type="number" value={getDeep(config, 'target.speed', 100)} onChange={v => updateConfig('target.speed', v)} /></Field>
+              <Field label="Mutu"><SelectInput value={getDeep(config, 'target.quality', 'balanced')} onChange={v => updateConfig('target.quality', v)}><option value="fast">Pratinjau Cepat</option><option value="balanced">Seimbang</option><option value="high">Kualitas Tinggi</option></SelectInput></Field>
+              <Check label="Timpa output lama jika nama sama" checked={Boolean(getDeep(config, 'target.overwrite', false))} onChange={v => updateConfig('target.overwrite', v)} />
+              <div className="mt-3 p-3 bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] space-y-3">
+                <h4 className="text-[11px] font-bold text-[var(--text-primary)]">Encoding Profiles</h4>
+                <Field label="Audio Codec"><SelectInput value={getDeep(config, 'target.audioCodec', 'aac')} onChange={v => updateConfig('target.audioCodec', v)}><option value="aac">AAC (Universal)</option><option value="mp3">MP3 (Compatible)</option><option value="opus">Opus (Efficient)</option><option value="vorbis">Vorbis (Open)</option></SelectInput></Field>
+                <Field label="Container"><SelectInput value={getDeep(config, 'target.container', 'mp4')} onChange={v => updateConfig('target.container', v)}><option value="mp4">MP4</option><option value="mkv">MKV</option><option value="webm">WebM</option><option value="mov">MOV</option></SelectInput></Field>
+                <Field label="Encoding Preset"><SelectInput value={getDeep(config, 'target.encodingPreset', 'medium')} onChange={v => updateConfig('target.encodingPreset', v)}><option value="ultrafast">Ultrafast (Low Quality)</option><option value="superfast">Superfast</option><option value="veryfast">Very Fast</option><option value="faster">Faster</option><option value="fast">Fast</option><option value="medium">Medium (Balanced)</option><option value="slow">Slow (Better)</option><option value="slower">Slower</option><option value="veryslow">Very Slow (Best)</option></SelectInput></Field>
+                <Field label="Tune"><SelectInput value={getDeep(config, 'target.tune', 'none')} onChange={v => updateConfig('target.tune', v)}><option value="none">None</option><option value="film">Film</option><option value="animation">Animation</option><option value="grain">Grain</option><option value="stillimage">Still Image</option><option value="fastdecode">Fast Decode</option></SelectInput></Field>
               </div>
+              <div className="mt-3 p-3 bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] space-y-3">
+                <h4 className="text-[11px] font-bold text-[var(--text-primary)]">Quality Presets</h4>
+                <div className="flex gap-2 flex-wrap">
+                  <button onClick={() => { updateConfig('target.quality', 'fast'); updateConfig('target.crf', 28); updateConfig('target.encodingPreset', 'veryfast'); updateConfig('target.bitrate', '2M'); }} className="px-3 py-1.5 text-[11px] font-semibold text-[var(--text-primary)] bg-[var(--tertiary-bg)] hover:bg-[var(--tertiary-bg)]/80 border border-[var(--border-subtle)] rounded-[var(--radius-md)] transition-all duration-200">🚀 Draft (Fast)</button>
+                  <button onClick={() => { updateConfig('target.quality', 'balanced'); updateConfig('target.crf', 23); updateConfig('target.encodingPreset', 'medium'); updateConfig('target.bitrate', '5M'); }} className="px-3 py-1.5 text-[11px] font-semibold text-[var(--text-primary)] bg-[var(--tertiary-bg)] hover:bg-[var(--tertiary-bg)]/80 border border-[var(--border-subtle)] rounded-[var(--radius-md)] transition-all duration-200">⚖️ Balanced</button>
+                  <button onClick={() => { updateConfig('target.quality', 'high'); updateConfig('target.crf', 18); updateConfig('target.encodingPreset', 'slow'); updateConfig('target.bitrate', '8M'); }} className="px-3 py-1.5 text-[11px] font-semibold text-[var(--text-primary)] bg-[var(--tertiary-bg)] hover:bg-[var(--tertiary-bg)]/80 border border-[var(--border-subtle)] rounded-[var(--radius-md)] transition-all duration-200">💎 High Quality</button>
+                  <button onClick={() => { updateConfig('target.quality', 'archive'); updateConfig('target.crf', 15); updateConfig('target.encodingPreset', 'veryslow'); updateConfig('target.bitrate', '12M'); }} className="px-3 py-1.5 text-[11px] font-semibold text-[var(--text-primary)] bg-[var(--tertiary-bg)] hover:bg-[var(--tertiary-bg)]/80 border border-[var(--border-subtle)] rounded-[var(--radius-md)] transition-all duration-200">📦 Archive</button>
+                </div>
+              </div>
+              <Field label="CRF"><TextInput type="number" value={getDeep(config, 'target.crf', 22)} onChange={v => updateConfig('target.crf', v)} /></Field>
+              <Field label="Pixel Format"><SelectInput value={getDeep(config, 'target.pixelFormat', 'yuv420p')} onChange={v => updateConfig('target.pixelFormat', v)}><option>yuv420p</option><option>yuv444p</option></SelectInput></Field>
+              <Field label="Audio Bitrate"><TextInput value={getDeep(config, 'audio.audioBitrate', '192k')} onChange={v => updateConfig('audio.audioBitrate', v)} /></Field>
               <Check label="Faststart MP4 untuk upload web" checked={Boolean(getDeep(config, 'target.faststart', true))} onChange={v => updateConfig('target.faststart', v)} />
             </div>
           )}
-        </div>
+        </Card>
 
-        {/* Smart Optimization */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Smart Optimization</h3>
-          <Check label="Enable Smart Optimization" checked={Boolean(getDeep(config, 'target.smartOptimization.enabled', false))} onChange={v => updateConfig('target.smartOptimization.enabled', v)} />
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Optimization Level">
-              <SelectInput value={getDeep(config, 'target.smartOptimization.level', 'balanced')} onChange={v => updateConfig('target.smartOptimization.level', v)}>
-                <option value="minimal">Minimal</option>
-                <option value="balanced">Balanced</option>
-                <option value="aggressive">Aggressive</option>
-              </SelectInput>
-            </Field>
-            <Field label="Target File Size">
-              <TextInput type="number" value={getDeep(config, 'target.smartOptimization.targetSizeMB', 0)} onChange={v => updateConfig('target.smartOptimization.targetSizeMB', v)} placeholder="0 = auto" />
-            </Field>
-            <Field label="Max Duration">
-              <TextInput type="number" value={getDeep(config, 'target.smartOptimization.maxDuration', 0)} onChange={v => updateConfig('target.smartOptimization.maxDuration', v)} placeholder="0 = no limit" />
-            </Field>
-          </div>
-          <Check label="Auto-adjust bitrate for file size" checked={Boolean(getDeep(config, 'target.smartOptimization.autoBitrate', true))} onChange={v => updateConfig('target.smartOptimization.autoBitrate', v)} />
-          <Check label="Two-pass encoding for better quality" checked={Boolean(getDeep(config, 'target.smartOptimization.twoPass', false))} onChange={v => updateConfig('target.smartOptimization.twoPass', v)} />
-          <Check label="Auto-detect scene changes" checked={Boolean(getDeep(config, 'target.smartOptimization.sceneDetect', true))} onChange={v => updateConfig('target.smartOptimization.sceneDetect', v)} />
-          <div className="px-3 py-2 bg-[var(--tertiary-bg)] rounded-[var(--radius-md)] text-[10px] text-[var(--text-muted)]">
-            💡 Smart Optimization otomatis menyesuaikan encoding settings berdasarkan konten video untuk hasil optimal.
-          </div>
-        </div>
+        {advanced && (
+          <>
+            {/* Smart Optimization */}
+            <Card title="Smart Optimization">
+              <Check label="Enable Smart Optimization" checked={Boolean(getDeep(config, 'target.smartOptimization.enabled', false))} onChange={v => updateConfig('target.smartOptimization.enabled', v)} />
+              <Field label="Optimization Level"><SelectInput value={getDeep(config, 'target.smartOptimization.level', 'balanced')} onChange={v => updateConfig('target.smartOptimization.level', v)}><option value="minimal">Minimal</option><option value="balanced">Balanced</option><option value="aggressive">Aggressive</option></SelectInput></Field>
+              <Field label="Target File Size"><TextInput type="number" value={getDeep(config, 'target.smartOptimization.targetSizeMB', 0)} onChange={v => updateConfig('target.smartOptimization.targetSizeMB', v)} placeholder="0 = auto" /></Field>
+              <Field label="Max Duration"><TextInput type="number" value={getDeep(config, 'target.smartOptimization.maxDuration', 0)} onChange={v => updateConfig('target.smartOptimization.maxDuration', v)} placeholder="0 = no limit" /></Field>
+              <Check label="Auto-adjust bitrate for file size" checked={Boolean(getDeep(config, 'target.smartOptimization.autoBitrate', true))} onChange={v => updateConfig('target.smartOptimization.autoBitrate', v)} />
+              <Check label="Two-pass encoding for better quality" checked={Boolean(getDeep(config, 'target.smartOptimization.twoPass', false))} onChange={v => updateConfig('target.smartOptimization.twoPass', v)} />
+              <Check label="Auto-detect scene changes" checked={Boolean(getDeep(config, 'target.smartOptimization.sceneDetect', true))} onChange={v => updateConfig('target.smartOptimization.sceneDetect', v)} />
+              <Callout type="tip">
+                Smart Optimization otomatis menyesuaikan encoding settings berdasarkan konten video untuk hasil optimal.
+              </Callout>
+            </Card>
 
-        {/* Batch Processing Options */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Batch Processing Options</h3>
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Parallel Jobs">
-              <TextInput type="number" value={getDeep(config, 'target.batch.parallelJobs', 1)} onChange={v => updateConfig('target.batch.parallelJobs', v)} placeholder="1-8" />
-            </Field>
-            <Field label="Priority">
-              <SelectInput value={getDeep(config, 'target.batch.priority', 'normal')} onChange={v => updateConfig('target.batch.priority', v)}>
-                <option value="low">Low</option>
-                <option value="normal">Normal</option>
-                <option value="high">High</option>
-              </SelectInput>
-            </Field>
-            <Field label="On Error">
-              <SelectInput value={getDeep(config, 'target.batch.onError', 'continue')} onChange={v => updateConfig('target.batch.onError', v)}>
-                <option value="continue">Continue</option>
-                <option value="pause">Pause</option>
-                <option value="stop">Stop All</option>
-              </SelectInput>
-            </Field>
-          </div>
-          <Check label="Auto-retry failed jobs" checked={Boolean(getDeep(config, 'target.batch.autoRetry', true))} onChange={v => updateConfig('target.batch.autoRetry', v)} />
-          <Check label="Send notification on completion" checked={Boolean(getDeep(config, 'target.batch.notify', false))} onChange={v => updateConfig('target.batch.notify', v)} />
-          <Check label="Auto-organize output by date" checked={Boolean(getDeep(config, 'target.batch.organizeByDate', false))} onChange={v => updateConfig('target.batch.organizeByDate', v)} />
-        </div>
+            {/* Batch Processing Options */}
+            <Card title="Batch Processing Options">
+              <Field label="Parallel Jobs"><TextInput type="number" value={getDeep(config, 'target.batch.parallelJobs', 1)} onChange={v => updateConfig('target.batch.parallelJobs', v)} placeholder="1-8" /></Field>
+              <Field label="Priority"><SelectInput value={getDeep(config, 'target.batch.priority', 'normal')} onChange={v => updateConfig('target.batch.priority', v)}><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option></SelectInput></Field>
+              <Field label="On Error"><SelectInput value={getDeep(config, 'target.batch.onError', 'continue')} onChange={v => updateConfig('target.batch.onError', v)}><option value="continue">Continue</option><option value="pause">Pause</option><option value="stop">Stop All</option></SelectInput></Field>
+              <Check label="Auto-retry failed jobs" checked={Boolean(getDeep(config, 'target.batch.autoRetry', true))} onChange={v => updateConfig('target.batch.autoRetry', v)} />
+              <Check label="Send notification on completion" checked={Boolean(getDeep(config, 'target.batch.notify', false))} onChange={v => updateConfig('target.batch.notify', v)} />
+              <Check label="Auto-organize output by date" checked={Boolean(getDeep(config, 'target.batch.organizeByDate', false))} onChange={v => updateConfig('target.batch.organizeByDate', v)} />
+            </Card>
+          </>
+        )}
 
         {/* Actions */}
         <div className="flex flex-wrap items-center gap-2 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
@@ -486,79 +391,43 @@ export function TargetPanel({ config, updateConfig }: { config: any; updateConfi
 
         {/* Diagnostics */}
         {scan.diagnostics && (
-          <div className="grid grid-cols-6 gap-3 p-4 bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)] text-[11px]">
-            <div className="flex flex-col items-center">
-              <span className="text-[var(--text-muted)] mb-1">FFmpeg</span>
-              <span className={cn('font-semibold', scan.diagnostics.ffmpeg ? 'text-[var(--accent-success)]' : 'text-[var(--accent-danger)]')}>
-                {scan.diagnostics.ffmpeg ? 'OK' : 'Tidak ada'}
-              </span>
-            </div>
-            <div className="flex flex-col items-center">
-              <span className="text-[var(--text-muted)] mb-1">Rekomendasi</span>
-              <span className="font-semibold text-[var(--accent-primary)]">{scan.diagnostics.recommended || '-'}</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <span className="text-[var(--text-muted)] mb-1">CPU/libx264</span>
-              <span className={cn('font-semibold', enc.libx264 ? 'text-[var(--accent-success)]' : 'text-[var(--text-muted)]')}>
-                {enc.libx264 ? 'OK' : '-'}
-              </span>
-            </div>
-            <div className="flex flex-col items-center">
-              <span className="text-[var(--text-muted)] mb-1">NVIDIA</span>
-              <span className={cn('font-semibold', enc.h264_nvenc ? 'text-[var(--accent-success)]' : 'text-[var(--text-muted)]')}>
-                {enc.h264_nvenc ? 'OK' : '-'}
-              </span>
-            </div>
-            <div className="flex flex-col items-center">
-              <span className="text-[var(--text-muted)] mb-1">Intel</span>
-              <span className={cn('font-semibold', enc.h264_qsv ? 'text-[var(--accent-success)]' : 'text-[var(--text-muted)]')}>
-                {enc.h264_qsv ? 'OK' : '-'}
-              </span>
-            </div>
-            <div className="flex flex-col items-center">
-              <span className="text-[var(--text-muted)] mb-1">AMD</span>
-              <span className={cn('font-semibold', enc.h264_amf ? 'text-[var(--accent-success)]' : 'text-[var(--text-muted)]')}>
-                {enc.h264_amf ? 'OK' : '-'}
-              </span>
-            </div>
-          </div>
+          <StatRow
+            stats={[
+              { label: 'FFmpeg', value: scan.diagnostics.ffmpeg ? 'OK' : 'Tidak ada', accent: scan.diagnostics.ffmpeg },
+              { label: 'Rekomendasi', value: scan.diagnostics.recommended || '-', accent: true },
+              { label: 'CPU/libx264', value: enc.libx264 ? 'OK' : '-' },
+              { label: 'NVIDIA', value: enc.h264_nvenc ? 'OK' : '-' },
+              { label: 'Intel', value: enc.h264_qsv ? 'OK' : '-' },
+              { label: 'AMD', value: enc.h264_amf ? 'OK' : '-' },
+            ]}
+          />
         )}
 
         {/* Summary stats */}
         {!!scan.summary && (
-          <div className="grid grid-cols-6 gap-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-            {[
+          <StatRow
+            stats={[
               { label: 'Total file', value: counts.total },
               { label: 'Video', value: counts.videos },
               { label: 'Gambar', value: counts.images },
               { label: 'Audio', value: counts.audios },
               { label: 'Lirik', value: counts.lyrics },
               { label: 'Target', value: scan.summary.resolution || '-' },
-            ].map(({ label, value }) => (
-              <div key={label} className="flex flex-col items-center text-center">
-                <span className="text-[11px] text-[var(--text-muted)] mb-1">{label}</span>
-                <span className="text-[16px] font-bold text-[var(--text-primary)]">{value}</span>
-              </div>
-            ))}
-          </div>
+            ]}
+          />
         )}
 
         {/* Risk cards */}
         {risk && (
-          <div className="grid grid-cols-5 gap-3 p-4 bg-[var(--secondary-bg)] border-2 border-[var(--accent-warning)] rounded-[var(--radius-lg)]">
-            {[
+          <StatRow
+            stats={[
               { label: 'Risk Score', value: risk.score, accent: true },
               { label: 'Pair rendah', value: risk.lowConfidencePairs },
               { label: 'Collision', value: risk.collisionCount },
               { label: 'File risk', value: risk.invalidFiles },
               { label: 'Tanpa lirik', value: risk.noLyrics },
-            ].map(({ label, value, accent }) => (
-              <div key={label} className="flex flex-col items-center text-center">
-                <span className="text-[11px] text-[var(--text-muted)] mb-1">{label}</span>
-                <span className={cn('text-[16px] font-bold', accent ? 'text-[var(--accent-warning)]' : 'text-[var(--text-primary)]')}>{value}</span>
-              </div>
-            ))}
-          </div>
+            ]}
+          />
         )}
 
         {/* Estimate */}
@@ -690,7 +559,6 @@ export function TargetPanel({ config, updateConfig }: { config: any; updateConfi
             </div>
           </div>
         )}
-      </div>
-    </aside>
+    </div>
   );
 }

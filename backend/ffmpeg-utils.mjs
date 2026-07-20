@@ -73,6 +73,12 @@ export function mimeFor(file) {
   const e = path.extname(file || '').toLowerCase();
   if (e === '.mp4') return 'video/mp4';
   if (e === '.webm') return 'video/webm';
+  if (e === '.mp3') return 'audio/mpeg';
+  if (e === '.wav') return 'audio/wav';
+  if (e === '.m4a') return 'audio/mp4';
+  if (e === '.aac') return 'audio/aac';
+  if (e === '.flac') return 'audio/flac';
+  if (e === '.ogg') return 'audio/ogg';
   if (e === '.jpg' || e === '.jpeg') return 'image/jpeg';
   if (e === '.png') return 'image/png';
   if (e === '.gif') return 'image/gif';

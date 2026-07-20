@@ -2,17 +2,29 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { cn } from './utils/cn';
 import { modules, moduleDisplay, moduleUi } from './constants/modules';
 import { ModuleIcon } from './components/ui/ModuleIcon';
-import { WorkspacePopup } from './components/layout/WorkspacePopup';
+import { SettingsPane } from './components/layout/SettingsPane';
 import { SettingsPanel } from './components/panels/SettingsPanel';
 import { PreviewPane } from './components/panels/PreviewPane';
 import { UpdateBanner } from './components/UpdateBanner';
-import { api } from './lib/api';
+import { ToastContainer, showToast, setupGlobalErrorHandler } from './components/ui/Toast';
+import { api, setToastHandler } from './lib/api';
 import { setDeep } from './lib/config-path';
 import { useUndoRedo } from './hooks/useUndoRedo';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { debounce } from './utils/performance';
 import type { AppState, ModuleKey, Project } from './types/app.types';
 
+// Setup global error handler and toast handler
+setupGlobalErrorHandler();
+setToastHandler(showToast);
+
 export function App() {
-  const [active, setActive] = useState<ModuleKey>('target'); const [workspaceOpen, setWorkspaceOpen] = useState(true); const [sidebarCollapsed, setSidebarCollapsed] = useState(false); const [state, setState] = useState<AppState | null>(null); const [config, setConfig] = useState<any>(null); const [saveInfo, setSaveInfo] = useState(''); const [perf, setPerf] = useState<any>(null);
+  const [active, setActive] = useState<ModuleKey>('target');
+  const [workspaceOpen, setWorkspaceOpen] = useState(true);
+  const [state, setState] = useState<AppState | null>(null);
+  const [config, setConfig] = useState<any>(null);
+  const [saveInfo, setSaveInfo] = useState('');
+  const [perf, setPerf] = useState<any>(null);
   const saveTimer = useRef<number | null>(null);
   const pendingConfig = useRef<any>(null);
   const undoRedo = useUndoRedo<any>(null);
@@ -35,39 +47,113 @@ export function App() {
   useEffect(() => { refresh(); refreshPerf(); const t = setInterval(() => { refresh(); refreshPerf(); }, Number(perf?.performance?.refreshMs || 1500)); return () => clearInterval(t); }, [perf?.performance?.refreshMs]); // eslint-disable-line
   useEffect(() => () => { if (saveTimer.current) window.clearTimeout(saveTimer.current); }, []);
 
-  // Keyboard shortcuts: Ctrl+Z = undo, Ctrl+Y / Ctrl+Shift+Z = redo
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if ((e.target as HTMLElement)?.tagName === 'INPUT' || (e.target as HTMLElement)?.tagName === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return;
-      if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
+  // Keyboard shortcuts
+  useKeyboardShortcuts([
+    {
+      key: 'z',
+      ctrl: true,
+      action: () => {
         const prev = undoRedo.undo();
-        if (prev) { setConfig(prev); scheduleConfigSave(prev); setSaveInfo('Undo'); }
-      }
-      if (e.ctrlKey && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
-        e.preventDefault();
+        if (prev) { 
+          setConfig(prev); 
+          scheduleConfigSave(prev); 
+          setSaveInfo('Undo');
+          showToast('info', 'Undo');
+        }
+      },
+      description: 'Undo last change'
+    },
+    {
+      key: 'y',
+      ctrl: true,
+      action: () => {
         const next = undoRedo.redo();
-        if (next) { setConfig(next); scheduleConfigSave(next); setSaveInfo('Redo'); }
-      }
+        if (next) { 
+          setConfig(next); 
+          scheduleConfigSave(next); 
+          setSaveInfo('Redo');
+          showToast('info', 'Redo');
+        }
+      },
+      description: 'Redo last change'
+    },
+    {
+      key: 'z',
+      ctrl: true,
+      shift: true,
+      action: () => {
+        const next = undoRedo.redo();
+        if (next) { 
+          setConfig(next); 
+          scheduleConfigSave(next); 
+          setSaveInfo('Redo');
+          showToast('info', 'Redo');
+        }
+      },
+      description: 'Redo last change (alternative)'
+    },
+    {
+      key: 'b',
+      ctrl: true,
+      action: () => {
+        setWorkspaceOpen(!workspaceOpen);
+        showToast('info', workspaceOpen ? 'Panel closed' : 'Panel opened');
+      },
+      description: 'Toggle settings panel'
+    },
+    {
+      key: 's',
+      ctrl: true,
+      action: () => {
+        if (config) {
+          scheduleConfigSave(config);
+          showToast('success', 'Configuration saved');
+        }
+      },
+      description: 'Save configuration'
+    },
+    {
+      key: 'Tab',
+      ctrl: true,
+      action: () => {
+        const currentIndex = modules.findIndex(m => m.key === active);
+        const nextIndex = (currentIndex + 1) % modules.length;
+        setActive(modules[nextIndex].key);
+        showToast('info', `Switched to ${moduleDisplay[modules[nextIndex].key].title}`);
+      },
+      description: 'Next module'
+    },
+    {
+      key: 'Tab',
+      ctrl: true,
+      shift: true,
+      action: () => {
+        const currentIndex = modules.findIndex(m => m.key === active);
+        const prevIndex = (currentIndex - 1 + modules.length) % modules.length;
+        setActive(modules[prevIndex].key);
+        showToast('info', `Switched to ${moduleDisplay[modules[prevIndex].key].title}`);
+      },
+      description: 'Previous module'
     }
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  ]);
 
-  function scheduleConfigSave(next: any) {
-    pendingConfig.current = next;
-    setSaveInfo('Menyimpan...');
-    if (saveTimer.current) window.clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(async () => {
-      const payload = pendingConfig.current;
-      saveTimer.current = null;
+  // Debounced config save for better performance
+  const debouncedConfigSave = useMemo(
+    () => debounce(async (configToSave: any) => {
       try {
-        await api('/api/config', { method: 'POST', body: JSON.stringify(payload) });
+        await api('/api/config', { method: 'POST', body: JSON.stringify(configToSave) });
         setSaveInfo('Tersimpan');
       } catch (e: any) {
         setSaveInfo(e.message || 'Gagal menyimpan');
       }
-    }, 450);
+    }, 450),
+    []
+  );
+
+  function scheduleConfigSave(next: any) {
+    pendingConfig.current = next;
+    setSaveInfo('Menyimpan...');
+    debouncedConfigSave(next);
   }
   const updateConfig = useCallback((path: string, value: any) => { 
     setConfig((prev: any) => { 
@@ -109,123 +195,124 @@ export function App() {
     violet: 'text-[#a855f7]',
     red:    'text-[#e76d78]',
   };
+
   return (
-    <div className={cn('h-screen flex flex-col bg-[#090e14] text-[#dce8ef] overflow-hidden', systemReady ? 'appReady' : 'appLoading')}>
-      {/* Topbar */}
-      <header className="h-11 shrink-0 flex items-center gap-3 px-4 bg-[#0b0e13] border-b border-[rgba(142,162,184,0.18)] z-10">
-        {/* Brand */}
-        <div className="flex flex-col leading-none min-w-[100px]">
-          <span className="text-[11px] font-bold tracking-[0.15em] text-[#eef7f6]">PIDEOFORGE</span>
-          <small className="text-[9px] text-[#8da0af] tracking-wide">by Bangalimin</small>
+    <div className={cn('h-screen flex flex-col bg-gradient-to-br from-ds-bg-base via-ds-bg-base to-ds-bg-elevated text-ds-text overflow-hidden', systemReady ? 'appReady' : 'appLoading')}>
+      {/* Topbar — premium 40px with 3D border */}
+      <header className="h-10 shrink-0 flex items-center gap-4 px-4 bg-gradient-to-r from-ds-bg-elevated via-ds-bg-panel to-ds-bg-elevated border-b-2 border-ds-line-strong shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.4)] z-10 backdrop-blur-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-ds-accent to-ds-purple flex items-center justify-center border-2 border-ds-accent-hover shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_4px_12px_rgba(90,158,255,0.6),0_2px_4px_rgba(0,0,0,0.4)]">
+            <span className="text-white text-[10px] font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">P</span>
+          </div>
+          <span className="text-[12px] font-bold tracking-[0.08em] text-ds-title drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">PidioForge</span>
         </div>
-        {/* Status */}
-        <div className={cn(
-          'flex items-center gap-2 px-3 py-1 rounded-md text-[11px] border',
-          activeJob
-            ? 'bg-[#1a1421] border-[#7d52d9] text-[#b99cff]'
-            : systemReady
-              ? 'bg-[#0e1a14] border-[rgba(45,187,127,0.4)] text-[#2dbb7f]'
-              : 'bg-[#121821] border-[rgba(142,162,184,0.22)] text-[#8da0af]'
-        )}>
+        {/* Status indicator with 3D glow effect */}
+        <div className="flex items-center gap-2 text-[11px] text-ds-muted">
           <span className={cn(
-            'w-1.5 h-1.5 rounded-full shrink-0',
-            activeJob ? 'bg-[#7d52d9] animate-pulse' : systemReady ? 'bg-[#2dbb7f]' : 'bg-[#8da0af] animate-pulse'
+            'w-2 h-2 rounded-full border-2',
+            activeJob ? 'bg-ds-danger border-ds-danger shadow-[0_0_12px_rgba(248,113,113,0.8),inset_0_1px_0_rgba(255,255,255,0.3)] animate-pulse' : systemReady ? 'bg-ds-success border-ds-success shadow-[0_0_12px_rgba(52,211,153,0.8),inset_0_1px_0_rgba(255,255,255,0.3)]' : 'bg-ds-muted border-ds-muted shadow-[0_0_8px_rgba(142,162,184,0.5)] animate-pulse'
           )} />
-          <div className="flex flex-col leading-none gap-0.5">
-            <b className="font-semibold text-[10px] uppercase tracking-wider opacity-70">
-              {activeJob ? 'Rendering' : systemReady ? 'Status' : 'Koneksi'}
-            </b>
-            <small className="text-[10px] max-w-[200px] truncate opacity-90">{statusText}</small>
-          </div>
+          <span className="truncate max-w-[200px] font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">{statusText}</span>
         </div>
-        {/* Perf */}
-        <div className="flex items-center gap-4 ml-auto">
-          <div className="flex flex-col leading-none text-right">
-            <b className="text-[10px] text-[#8da0af] font-medium">{perf?.performance?.mode || 'Seimbang'}</b>
-            <small className="text-[9px] text-[#8da0af] opacity-60">{perf?.encoder || 'encoder'}</small>
-          </div>
-          {[
-            { label: 'CPU', value: perf?.metrics?.cpu ?? 0 },
-            { label: 'Mem', value: perf?.metrics?.memory ?? 0 },
-            { label: 'Render', value: Math.min(100, (perf?.metrics?.activeRenders || 0) * 50) },
-          ].map(({ label, value }) => (
-            <div key={label} className="flex flex-col items-center leading-none">
-              <b className="text-[12px] font-semibold text-[#eef7f6]">{value}%</b>
-              <small className="text-[9px] text-[#8da0af]">{label}</small>
-            </div>
-          ))}
-        </div>
-        {/* Stats */}
-        <div className="flex items-center gap-4 pl-4 border-l border-[rgba(142,162,184,0.18)]">
-          {[
-            { label: 'Project', value: projectCount },
-            { label: 'Antrian', value: queueCount },
-            { label: 'Render Aktif', value: renderCount },
-          ].map(({ label, value }) => (
-            <div key={label} className="flex flex-col items-center leading-none">
-              <b className="text-[12px] font-semibold text-[#eef7f6]">{value}</b>
-              <small className="text-[9px] text-[#8da0af]">{label}</small>
-            </div>
-          ))}
-        </div>
-        <UpdateBanner />
+        <div className="ml-auto"><UpdateBanner /></div>
       </header>
-      {/* Main layout: sidebar + preview, workspace floats above preview */}
-      <div className={cn('workspaceMain flex-1 grid overflow-hidden relative transition-all', sidebarCollapsed ? 'grid-cols-[48px_minmax(0,1fr)]' : 'grid-cols-[140px_minmax(0,1fr)]')}>
-        {/* Sidebar nav */}
-        <nav className={cn('flex flex-col gap-0.5 bg-[#0b0e13] border-r border-[rgba(142,162,184,0.18)] overflow-y-auto transition-all', sidebarCollapsed ? 'p-1 items-center' : 'p-1.5')}>
-          <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="flex items-center justify-center w-full py-1.5 mb-1 rounded-md text-[#8da0af] hover:text-[#dce8ef] hover:bg-[#0f1620] transition-colors border border-transparent"
-            title={sidebarCollapsed ? 'Perlebar sidebar' : 'Kecilkan sidebar'}
-          >
-            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2"><path d={sidebarCollapsed ? 'M9 18l6-6-6-6' : 'M15 18l-6-6 6-6'} /></svg>
-          </button>
+
+      {/* Main: icon-sidebar + settings-panel + preview */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Icon Sidebar — 56px premium with 3D borders */}
+        <nav className="w-14 shrink-0 flex flex-col items-center gap-1.5 py-3 bg-gradient-to-b from-ds-bg-elevated via-ds-bg-panel to-ds-bg-elevated border-r-2 border-ds-line-strong overflow-y-auto shadow-[4px_0_12px_rgba(0,0,0,0.3)]">
           {modules.map(item => {
             const isActive = active === item.key;
             const tone = moduleUi[item.key].tone;
             return (
               <button
                 key={item.key}
-                title={`${moduleDisplay[item.key].title} — ${moduleDisplay[item.key].sub}`}
+                title={moduleDisplay[item.key].title}
                 aria-label={moduleDisplay[item.key].title}
-                onClick={() => { setActive(item.key); setWorkspaceOpen(true); }}
+                onClick={() => { setActive(item.key); if (!workspaceOpen) setWorkspaceOpen(true); }}
                 className={cn(
-                  'flex items-center gap-2 w-full rounded-md transition-colors',
-                  'border border-transparent',
-                  sidebarCollapsed ? 'justify-center py-2.5 px-1' : 'py-2 px-2',
+                  'relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-150 ease-out border-2 will-change-transform',
                   isActive
-                    ? cn('bg-[#121821] border-[rgba(142,162,184,0.22)]', toneAccent[tone] || 'text-[#4f8ef7]')
-                    : 'text-[#8da0af] hover:text-[#dce8ef] hover:bg-[#0f1620]'
+                    ? cn('bg-gradient-to-br from-ds-bg-panel-2 to-ds-bg-panel border-ds-line-strong shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_4px_8px_rgba(0,0,0,0.4)]', toneAccent[tone] || 'text-ds-accent')
+                    : 'text-ds-muted border-ds-line hover:text-ds-text hover:bg-ds-bg-hover hover:border-ds-line-strong hover:shadow-[0_2px_6px_rgba(0,0,0,0.3)]'
                 )}
               >
-                <i className={cn('block w-5 h-5 shrink-0', isActive ? '' : 'opacity-70')}>
+                {isActive && (
+                  <span className={cn('absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full shadow-[0_0_8px_currentColor]', `bg-current`)} />
+                )}
+                <i className="block w-5 h-5">
                   <ModuleIcon kind={moduleUi[item.key].icon} />
                 </i>
-                {!sidebarCollapsed && (
-                  <div className="flex flex-col min-w-0">
-                    <b className="text-[11px] font-semibold leading-tight truncate">
-                      {moduleDisplay[item.key].title}
-                    </b>
-                    <small className="text-[9px] opacity-50 leading-tight truncate">
-                      {moduleDisplay[item.key].sub}
-                    </small>
-                  </div>
-                )}
               </button>
             );
           })}
         </nav>
-        <WorkspacePopup
-          open={workspaceOpen}
+
+        {/* Settings Panel — fixed 280px */}
+        <SettingsPane
           title={moduleDisplay[active]?.title}
-          onOpen={() => setWorkspaceOpen(true)}
-          onClose={() => setWorkspaceOpen(false)}
+          collapsed={!workspaceOpen}
+          onToggle={() => setWorkspaceOpen(!workspaceOpen)}
         >
           <SettingsPanel active={active} config={config} updateConfig={updateConfig} presets={state?.presets || []} applyPreset={applyPreset} savePreset={savePreset} />
-        </WorkspacePopup>
-        <PreviewPane active={active} jobs={state?.jobs || []} logs={state?.logs || []} refresh={refresh} config={config} updateConfig={updateConfig} />
+        </SettingsPane>
+
+        {/* Toggle button when panel closed */}
+        {!workspaceOpen && (
+          <button
+            onClick={() => setWorkspaceOpen(true)}
+            className="shrink-0 flex items-center justify-center w-6 bg-ds-bg-elevated border-r border-ds-line text-ds-muted hover:text-ds-text transition-colors"
+            title="Buka panel settings"
+          >
+            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </button>
+        )}
+
+        {/* Preview area — fills remaining */}
+        <div className="flex-1 min-w-0 flex flex-col">
+          <PreviewPane active={active} jobs={state?.jobs || []} logs={state?.logs || []} refresh={refresh} config={config} updateConfig={updateConfig} />
+        </div>
       </div>
+
+      {/* Toast Notifications */}
+      <ToastContainer />
+
+      {/* Status bar — 28px premium with 3D border */}
+      <footer className="h-7 shrink-0 flex items-center gap-4 px-4 bg-gradient-to-r from-ds-bg-elevated via-ds-bg-panel to-ds-bg-elevated border-t-2 border-ds-line-strong text-[11px] text-ds-muted shadow-[inset_0_-1px_0_rgba(255,255,255,0.08),0_-4px_12px_rgba(0,0,0,0.4)] backdrop-blur-sm">
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-ds-success shadow-ds-success-glow"></span>
+          <span className="font-medium">{perf?.performance?.mode || 'Seimbang'}</span>
+          <span className="text-ds-subtle">·</span>
+          <span className="text-ds-text">{perf?.encoder || 'encoder'}</span>
+        </div>
+        <div className="flex items-center gap-4 ml-auto">
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded border-2 border-ds-line bg-ds-bg-panel shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_2px_4px_rgba(0,0,0,0.2)]">
+            <span className="text-ds-subtle text-[10px]">CPU</span>
+            <span className={cn('font-bold text-[11px]', (perf?.metrics?.cpu ?? 0) > 80 ? 'text-ds-warn drop-shadow-[0_0_4px_rgba(251,191,36,0.6)]' : 'text-ds-text')}>{perf?.metrics?.cpu ?? 0}%</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded border-2 border-ds-line bg-ds-bg-panel shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_2px_4px_rgba(0,0,0,0.2)]">
+            <span className="text-ds-subtle text-[10px]">Mem</span>
+            <span className={cn('font-bold text-[11px]', (perf?.metrics?.memory ?? 0) > 80 ? 'text-ds-warn drop-shadow-[0_0_4px_rgba(251,191,36,0.6)]' : 'text-ds-text')}>{perf?.metrics?.memory ?? 0}%</span>
+          </div>
+          <div className="w-px h-4 bg-ds-line-strong shadow-[1px_0_0_rgba(255,255,255,0.05)]"></div>
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded border-2 border-ds-line bg-ds-bg-panel shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_2px_4px_rgba(0,0,0,0.2)]">
+            <span className="text-ds-subtle text-[10px]">Proj</span>
+            <span className="font-bold text-ds-text text-[11px]">{projectCount}</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded border-2 border-ds-line bg-ds-bg-panel shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_2px_4px_rgba(0,0,0,0.2)]">
+            <span className="text-ds-subtle text-[10px]">Queue</span>
+            <span className="font-bold text-ds-text text-[11px]">{queueCount}</span>
+          </div>
+          {renderCount > 0 && (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-ds-danger-bg border-2 border-ds-danger shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_4px_8px_rgba(248,113,113,0.5),0_2px_4px_rgba(0,0,0,0.3)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-ds-danger border border-ds-danger animate-pulse shadow-[0_0_8px_rgba(248,113,113,0.8)]"></span>
+              <span className="font-bold text-ds-danger text-[11px] drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">Render {renderCount}</span>
+            </div>
+          )}
+        </div>
+      </footer>
     </div>
   );
 }

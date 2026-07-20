@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Field, Check, TextInput, SelectInput, Slider } from '../ui/form-controls';
+import { Field, Check, TextInput, SelectInput } from '../ui/form-controls';
 import { PathInput } from '../ui/PathInput';
 import { cn } from '../../utils/cn';
 import { api } from '../../lib/api';
 import { getDeep } from '../../lib/config-path';
 import { cleanUiText } from '../../lib/format';
 import { detectTargetFormat, applyOverlayFormatPreset } from '../../utils/format-presets';
+import { Callout, Card, SliderControl } from '../ui/design-system-components';
 
 export function OverlayPanel({ config, updateConfig }: { config: any; updateConfig: (path: string, value: any) => void }) {
   const [message, setMessage] = useState('');
@@ -28,17 +29,7 @@ export function OverlayPanel({ config, updateConfig }: { config: any; updateConf
     } catch (e: any) { setMessage(e.message); }
     finally { setBusy(false); }
   }
-  return (
-    <aside className="flex flex-col h-full bg-[var(--primary-bg)] overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-subtle)]">
-        <div>
-          <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Overlay & Effects</h2>
-          <p className="text-[12px] text-[var(--text-muted)] mt-1">Particles, text overlays, dan efek sinematik</p>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+  return (<div className="space-y-4">
         {/* Preview Area */}
         <div className="p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)] space-y-3">
           <div className="relative h-[84px] rounded-[var(--radius-md)] overflow-hidden bg-[var(--tertiary-bg)] border border-[var(--border-subtle)]">
@@ -74,182 +65,151 @@ export function OverlayPanel({ config, updateConfig }: { config: any; updateConf
         </div>
 
         {/* Particle & Asset */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Particle & Asset</h3>
+        <Card title="Particle & Asset">
           <Check label="Video Partikel" checked={Boolean(getDeep(config, 'overlay.videoParticle', true))} onChange={v => updateConfig('overlay.videoParticle', v)} />
           <Field label="File Partikel"><PathInput value={getDeep(config, 'overlay.particleFile')} onChange={v => updateConfig('overlay.particleFile', v)} placeholder="Video particle / light leak" filter="video" /></Field>
-          <Slider label="Opacity Partikel" value={Number(getDeep(config, 'overlay.particleOpacity', 70))} onChange={v => updateConfig('overlay.particleOpacity', v)} min={0} max={100} />
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Kecepatan"><TextInput type="number" value={getDeep(config, 'overlay.particleSpeed', 100)} onChange={v => updateConfig('overlay.particleSpeed', v)} /></Field>
-            <Field label="Campur"><SelectInput value={getDeep(config, 'overlay.particleBlend', 'normal')} onChange={v => updateConfig('overlay.particleBlend', v)}><option>normal</option><option>screen</option><option>add</option></SelectInput></Field>
-            <Field label="Transisi Lagu"><SelectInput value={getDeep(config, 'overlay.songTransition', 'fade')} onChange={v => updateConfig('overlay.songTransition', v)}><option>fade</option><option>cut</option><option>mix</option></SelectInput></Field>
-          </div>
+          <SliderControl label="Opacity Partikel" value={Number(getDeep(config, 'overlay.particleOpacity', 70))} onChange={v => updateConfig('overlay.particleOpacity', v)} min={0} max={100} />
+          <Field label="Kecepatan"><TextInput type="number" value={getDeep(config, 'overlay.particleSpeed', 100)} onChange={v => updateConfig('overlay.particleSpeed', v)} /></Field>
+          <Field label="Campur"><SelectInput value={getDeep(config, 'overlay.particleBlend', 'normal')} onChange={v => updateConfig('overlay.particleBlend', v)}><option>normal</option><option>screen</option><option>add</option></SelectInput></Field>
+          <Field label="Transisi Lagu"><SelectInput value={getDeep(config, 'overlay.songTransition', 'fade')} onChange={v => updateConfig('overlay.songTransition', v)}><option>fade</option><option>cut</option><option>mix</option></SelectInput></Field>
           <Check label="Overlay asset tambahan" checked={Boolean(getDeep(config, 'overlay.overlayEnabled', false))} onChange={v => updateConfig('overlay.overlayEnabled', v)} />
           <Field label="File Overlay"><PathInput value={getDeep(config, 'overlay.overlayFile', '')} onChange={v => updateConfig('overlay.overlayFile', v)} placeholder="PNG/video overlay" filter="visual" /></Field>
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Posisi"><SelectInput value={getDeep(config, 'overlay.overlayPosition', 'Tengah')} onChange={v => updateConfig('overlay.overlayPosition', v)}><option>Tengah</option><option>Kanan Atas</option><option>Kiri Atas</option><option>Kanan Bawah</option><option>Kiri Bawah</option></SelectInput></Field>
-            <Field label="Mulai"><TextInput type="number" value={getDeep(config, 'overlay.overlayStart', 0)} onChange={v => updateConfig('overlay.overlayStart', v)} /></Field>
-            <Field label="Selesai"><TextInput type="number" value={getDeep(config, 'overlay.overlayEnd', 0)} onChange={v => updateConfig('overlay.overlayEnd', v)} /></Field>
-          </div>
-          <Slider label="Opacity Overlay" value={Number(getDeep(config, 'overlay.overlayOpacity', 80))} onChange={v => updateConfig('overlay.overlayOpacity', v)} min={0} max={100} />
-          <Slider label="Skala Overlay" value={Number(getDeep(config, 'overlay.overlayScale', 100))} onChange={v => updateConfig('overlay.overlayScale', v)} min={5} max={160} />
-        </div>
+          <Field label="Posisi"><SelectInput value={getDeep(config, 'overlay.overlayPosition', 'Tengah')} onChange={v => updateConfig('overlay.overlayPosition', v)}><option>Tengah</option><option>Kanan Atas</option><option>Kiri Atas</option><option>Kanan Bawah</option><option>Kiri Bawah</option></SelectInput></Field>
+          <Field label="Mulai"><TextInput type="number" value={getDeep(config, 'overlay.overlayStart', 0)} onChange={v => updateConfig('overlay.overlayStart', v)} /></Field>
+          <Field label="Selesai"><TextInput type="number" value={getDeep(config, 'overlay.overlayEnd', 0)} onChange={v => updateConfig('overlay.overlayEnd', v)} /></Field>
+          <SliderControl label="Opacity Overlay" value={Number(getDeep(config, 'overlay.overlayOpacity', 80))} onChange={v => updateConfig('overlay.overlayOpacity', v)} min={0} max={100} />
+          <SliderControl label="Skala Overlay" value={Number(getDeep(config, 'overlay.overlayScale', 100))} onChange={v => updateConfig('overlay.overlayScale', v)} min={5} max={160} />
+        </Card>
 
         {/* Teks Overlay */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Teks Overlay</h3>
+        <Card title="Teks Overlay">
           <Check label="Timestamp / Label" checked={Boolean(getDeep(config, 'overlay.timestamp', false))} onChange={v => updateConfig('overlay.timestamp', v)} />
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Text"><TextInput value={getDeep(config, 'overlay.timestampText', 'Dirender oleh PidioForge')} onChange={v => updateConfig('overlay.timestampText', v)} /></Field>
-            <Field label="Posisi"><SelectInput value={getDeep(config, 'overlay.timestampPosition', 'Kiri Atas')} onChange={v => updateConfig('overlay.timestampPosition', v)}><option>Kiri Atas</option><option>Kanan Atas</option><option>Kiri Bawah</option><option>Kanan Bawah</option></SelectInput></Field>
-            <Field label="Playlist"><SelectInput value={getDeep(config, 'overlay.playlist', true) ? 'Aktif' : 'Mati'} onChange={v => updateConfig('overlay.playlist', v === 'Aktif')}><option value="Aktif">Aktif</option><option value="Mati">Mati</option></SelectInput></Field>
-          </div>
+          <Field label="Text"><TextInput value={getDeep(config, 'overlay.timestampText', 'Dirender oleh PidioForge')} onChange={v => updateConfig('overlay.timestampText', v)} /></Field>
+          <Field label="Posisi"><SelectInput value={getDeep(config, 'overlay.timestampPosition', 'Kiri Atas')} onChange={v => updateConfig('overlay.timestampPosition', v)}><option>Kiri Atas</option><option>Kanan Atas</option><option>Kiri Bawah</option><option>Kanan Bawah</option></SelectInput></Field>
+          <Field label="Playlist"><SelectInput value={getDeep(config, 'overlay.playlist', true) ? 'Aktif' : 'Mati'} onChange={v => updateConfig('overlay.playlist', v === 'Aktif')}><option value="Aktif">Aktif</option><option value="Mati">Mati</option></SelectInput></Field>
           <Check label="Lower Third" checked={Boolean(getDeep(config, 'overlay.lowerThirdEnabled', false))} onChange={v => updateConfig('overlay.lowerThirdEnabled', v)} />
           <Field label="Lower Third Text"><TextInput value={getDeep(config, 'overlay.lowerThirdText', '')} onChange={v => updateConfig('overlay.lowerThirdText', v)} placeholder="Judul / nama channel / info lagu" /></Field>
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Posisi"><SelectInput value={getDeep(config, 'overlay.lowerThirdPosition', 'Bawah')} onChange={v => updateConfig('overlay.lowerThirdPosition', v)}><option>Bawah</option><option>Tengah</option><option>Atas</option></SelectInput></Field>
-            <Field label="Muncul detik"><TextInput type="number" value={getDeep(config, 'overlay.lowerThirdAt', 2)} onChange={v => updateConfig('overlay.lowerThirdAt', v)} /></Field>
-            <Field label="Durasi"><TextInput type="number" value={getDeep(config, 'overlay.lowerThirdDuration', 5)} onChange={v => updateConfig('overlay.lowerThirdDuration', v)} /></Field>
-          </div>
-        </div>
+          <Field label="Posisi"><SelectInput value={getDeep(config, 'overlay.lowerThirdPosition', 'Bawah')} onChange={v => updateConfig('overlay.lowerThirdPosition', v)}><option>Bawah</option><option>Tengah</option><option>Atas</option></SelectInput></Field>
+          <Field label="Muncul detik"><TextInput type="number" value={getDeep(config, 'overlay.lowerThirdAt', 2)} onChange={v => updateConfig('overlay.lowerThirdAt', v)} /></Field>
+          <Field label="Durasi"><TextInput type="number" value={getDeep(config, 'overlay.lowerThirdDuration', 5)} onChange={v => updateConfig('overlay.lowerThirdDuration', v)} /></Field>
+        </Card>
 
         {/* Efek Sinematik */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Efek Sinematik</h3>
+        <Card title="Efek Sinematik">
           <Check label="Vignette" checked={Boolean(getDeep(config, 'overlay.vignette', false))} onChange={v => updateConfig('overlay.vignette', v)} />
-          <Slider label="Vignette Strength" value={Number(getDeep(config, 'overlay.vignetteStrength', 0.35)) * 100} onChange={v => updateConfig('overlay.vignetteStrength', v / 100)} min={0} max={100} />
+          <SliderControl label="Vignette Strength" value={Number(getDeep(config, 'overlay.vignetteStrength', 0.35)) * 100} onChange={v => updateConfig('overlay.vignetteStrength', v / 100)} min={0} max={100} />
           <Check label="Film Grain" checked={Boolean(getDeep(config, 'overlay.filmGrain', false))} onChange={v => updateConfig('overlay.filmGrain', v)} />
-          <Slider label="Grain Strength" value={Number(getDeep(config, 'overlay.grainStrength', 12))} onChange={v => updateConfig('overlay.grainStrength', v)} min={0} max={40} />
+          <SliderControl label="Grain Strength" value={Number(getDeep(config, 'overlay.grainStrength', 12))} onChange={v => updateConfig('overlay.grainStrength', v)} min={0} max={40} />
           <Check label="Scanlines" checked={Boolean(getDeep(config, 'overlay.scanlines', false))} onChange={v => updateConfig('overlay.scanlines', v)} />
-          <Slider label="Scanline Opacity" value={Number(getDeep(config, 'overlay.scanlineOpacity', 6))} onChange={v => updateConfig('overlay.scanlineOpacity', v)} min={0} max={30} />
+          <SliderControl label="Scanline Opacity" value={Number(getDeep(config, 'overlay.scanlineOpacity', 6))} onChange={v => updateConfig('overlay.scanlineOpacity', v)} min={0} max={30} />
           <Check label="Darken overlay" checked={Boolean(getDeep(config, 'overlay.darken', false))} onChange={v => updateConfig('overlay.darken', v)} />
-          <Slider label="Darken Opacity" value={Number(getDeep(config, 'overlay.darkenOpacity', 15))} onChange={v => updateConfig('overlay.darkenOpacity', v)} min={0} max={60} />
-        </div>
+          <SliderControl label="Darken Opacity" value={Number(getDeep(config, 'overlay.darkenOpacity', 15))} onChange={v => updateConfig('overlay.darkenOpacity', v)} min={0} max={60} />
+        </Card>
 
         {/* Advanced Color Grading */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Advanced Color Grading</h3>
+        <Card title="Advanced Color Grading">
           <Check label="Enable Color Grading" checked={Boolean(getDeep(config, 'overlay.colorGrading.enabled', false))} onChange={v => updateConfig('overlay.colorGrading.enabled', v)} />
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="LUT Preset">
-              <SelectInput value={getDeep(config, 'overlay.colorGrading.lutPreset', 'none')} onChange={v => updateConfig('overlay.colorGrading.lutPreset', v)}>
-                <option value="none">None</option>
-                <option value="cinematic-warm">Cinematic Warm</option>
-                <option value="cinematic-cool">Cinematic Cool</option>
-                <option value="vintage">Vintage</option>
-                <option value="noir">Film Noir</option>
-                <option value="vibrant">Vibrant</option>
-                <option value="desaturated">Desaturated</option>
-              </SelectInput>
-            </Field>
-            <Field label="Custom LUT File">
-              <PathInput value={getDeep(config, 'overlay.colorGrading.lutFile', '')} onChange={v => updateConfig('overlay.colorGrading.lutFile', v)} placeholder=".cube file" filter="lut" />
-            </Field>
-            <Field label="LUT Strength">
-              <TextInput type="number" value={getDeep(config, 'overlay.colorGrading.lutStrength', 100)} onChange={v => updateConfig('overlay.colorGrading.lutStrength', v)} placeholder="0-100" />
-            </Field>
-          </div>
-          <Slider label="Brightness" value={Number(getDeep(config, 'overlay.colorGrading.brightness', 0))} onChange={v => updateConfig('overlay.colorGrading.brightness', v)} min={-50} max={50} />
-          <Slider label="Contrast" value={Number(getDeep(config, 'overlay.colorGrading.contrast', 0))} onChange={v => updateConfig('overlay.colorGrading.contrast', v)} min={-50} max={50} />
-          <Slider label="Saturation" value={Number(getDeep(config, 'overlay.colorGrading.saturation', 0))} onChange={v => updateConfig('overlay.colorGrading.saturation', v)} min={-100} max={100} />
-          <div className="grid grid-cols-3 gap-3">
-            <Slider label="Temperature" value={Number(getDeep(config, 'overlay.colorGrading.temperature', 0))} onChange={v => updateConfig('overlay.colorGrading.temperature', v)} min={-100} max={100} />
-            <Slider label="Tint" value={Number(getDeep(config, 'overlay.colorGrading.tint', 0))} onChange={v => updateConfig('overlay.colorGrading.tint', v)} min={-100} max={100} />
-            <Slider label="Vibrance" value={Number(getDeep(config, 'overlay.colorGrading.vibrance', 0))} onChange={v => updateConfig('overlay.colorGrading.vibrance', v)} min={-50} max={50} />
-          </div>
-          <div className="px-3 py-2 bg-[var(--tertiary-bg)] rounded-[var(--radius-md)] text-[10px] text-[var(--text-muted)]">
-            💡 Color Grading menggunakan LUT (Look-Up Table) untuk color correction profesional. Upload .cube file atau gunakan preset.
-          </div>
-        </div>
+          <Field label="LUT Preset">
+            <SelectInput value={getDeep(config, 'overlay.colorGrading.lutPreset', 'none')} onChange={v => updateConfig('overlay.colorGrading.lutPreset', v)}>
+              <option value="none">None</option>
+              <option value="cinematic-warm">Cinematic Warm</option>
+              <option value="cinematic-cool">Cinematic Cool</option>
+              <option value="vintage">Vintage</option>
+              <option value="noir">Film Noir</option>
+              <option value="vibrant">Vibrant</option>
+              <option value="desaturated">Desaturated</option>
+            </SelectInput>
+          </Field>
+          <Field label="Custom LUT File">
+            <PathInput value={getDeep(config, 'overlay.colorGrading.lutFile', '')} onChange={v => updateConfig('overlay.colorGrading.lutFile', v)} placeholder=".cube file" filter="lut" />
+          </Field>
+          <Field label="LUT Strength">
+            <TextInput type="number" value={getDeep(config, 'overlay.colorGrading.lutStrength', 100)} onChange={v => updateConfig('overlay.colorGrading.lutStrength', v)} placeholder="0-100" />
+          </Field>
+          <SliderControl label="Brightness" value={Number(getDeep(config, 'overlay.colorGrading.brightness', 0))} onChange={v => updateConfig('overlay.colorGrading.brightness', v)} min={-50} max={50} />
+          <SliderControl label="Contrast" value={Number(getDeep(config, 'overlay.colorGrading.contrast', 0))} onChange={v => updateConfig('overlay.colorGrading.contrast', v)} min={-50} max={50} />
+          <SliderControl label="Saturation" value={Number(getDeep(config, 'overlay.colorGrading.saturation', 0))} onChange={v => updateConfig('overlay.colorGrading.saturation', v)} min={-100} max={100} />
+          <SliderControl label="Temperature" value={Number(getDeep(config, 'overlay.colorGrading.temperature', 0))} onChange={v => updateConfig('overlay.colorGrading.temperature', v)} min={-100} max={100} />
+          <SliderControl label="Tint" value={Number(getDeep(config, 'overlay.colorGrading.tint', 0))} onChange={v => updateConfig('overlay.colorGrading.tint', v)} min={-100} max={100} />
+          <SliderControl label="Vibrance" value={Number(getDeep(config, 'overlay.colorGrading.vibrance', 0))} onChange={v => updateConfig('overlay.colorGrading.vibrance', v)} min={-50} max={50} />
+          <Callout type="tip">
+            Color Grading menggunakan LUT (Look-Up Table) untuk color correction profesional. Upload .cube file atau gunakan preset.
+          </Callout>
+        </Card>
 
         {/* Motion Effects */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Motion Effects</h3>
+        <Card title="Motion Effects">
           <Check label="Enable Motion Blur" checked={Boolean(getDeep(config, 'overlay.motionBlur.enabled', false))} onChange={v => updateConfig('overlay.motionBlur.enabled', v)} />
-          <Slider label="Motion Blur Amount" value={Number(getDeep(config, 'overlay.motionBlur.amount', 0.5))} onChange={v => updateConfig('overlay.motionBlur.amount', v)} min={0} max={1} />
+          <SliderControl label="Motion Blur Amount" value={Number(getDeep(config, 'overlay.motionBlur.amount', 0.5))} onChange={v => updateConfig('overlay.motionBlur.amount', v)} min={0} max={1} />
           <Check label="Enable Shake Effect" checked={Boolean(getDeep(config, 'overlay.shake.enabled', false))} onChange={v => updateConfig('overlay.shake.enabled', v)} />
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Shake Intensity">
-              <TextInput type="number" value={getDeep(config, 'overlay.shake.intensity', 5)} onChange={v => updateConfig('overlay.shake.intensity', v)} placeholder="1-20" />
-            </Field>
-            <Field label="Shake Frequency">
-              <TextInput type="number" value={getDeep(config, 'overlay.shake.frequency', 10)} onChange={v => updateConfig('overlay.shake.frequency', v)} placeholder="1-30" />
-            </Field>
-            <Field label="Shake Trigger">
-              <SelectInput value={getDeep(config, 'overlay.shake.trigger', 'beat')} onChange={v => updateConfig('overlay.shake.trigger', v)}>
-                <option value="beat">On Beat</option>
-                <option value="drop">On Drop</option>
-                <option value="continuous">Continuous</option>
-                <option value="manual">Manual Times</option>
-              </SelectInput>
-            </Field>
-          </div>
+          <Field label="Shake Intensity">
+            <TextInput type="number" value={getDeep(config, 'overlay.shake.intensity', 5)} onChange={v => updateConfig('overlay.shake.intensity', v)} placeholder="1-20" />
+          </Field>
+          <Field label="Shake Frequency">
+            <TextInput type="number" value={getDeep(config, 'overlay.shake.frequency', 10)} onChange={v => updateConfig('overlay.shake.frequency', v)} placeholder="1-30" />
+          </Field>
+          <Field label="Shake Trigger">
+            <SelectInput value={getDeep(config, 'overlay.shake.trigger', 'beat')} onChange={v => updateConfig('overlay.shake.trigger', v)}>
+              <option value="beat">On Beat</option>
+              <option value="drop">On Drop</option>
+              <option value="continuous">Continuous</option>
+              <option value="manual">Manual Times</option>
+            </SelectInput>
+          </Field>
           <Check label="Enable Zoom Pulse" checked={Boolean(getDeep(config, 'overlay.zoomPulse.enabled', false))} onChange={v => updateConfig('overlay.zoomPulse.enabled', v)} />
-          <div className="grid grid-cols-2 gap-3">
-            <Slider label="Zoom Amount" value={Number(getDeep(config, 'overlay.zoomPulse.amount', 5))} onChange={v => updateConfig('overlay.zoomPulse.amount', v)} min={0} max={20} />
-            <Field label="Zoom Sync">
-              <SelectInput value={getDeep(config, 'overlay.zoomPulse.sync', 'beat')} onChange={v => updateConfig('overlay.zoomPulse.sync', v)}>
-                <option value="beat">Beat</option>
-                <option value="bar">Bar</option>
-                <option value="phrase">Phrase</option>
-              </SelectInput>
-            </Field>
-          </div>
-        </div>
+          <SliderControl label="Zoom Amount" value={Number(getDeep(config, 'overlay.zoomPulse.amount', 5))} onChange={v => updateConfig('overlay.zoomPulse.amount', v)} min={0} max={20} />
+          <Field label="Zoom Sync">
+            <SelectInput value={getDeep(config, 'overlay.zoomPulse.sync', 'beat')} onChange={v => updateConfig('overlay.zoomPulse.sync', v)}>
+              <option value="beat">Beat</option>
+              <option value="bar">Bar</option>
+              <option value="phrase">Phrase</option>
+            </SelectInput>
+          </Field>
+        </Card>
 
         {/* Glitch & Distortion */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Glitch & Distortion</h3>
+        <Card title="Glitch & Distortion">
           <Check label="Enable Glitch Effect" checked={Boolean(getDeep(config, 'overlay.glitch.enabled', false))} onChange={v => updateConfig('overlay.glitch.enabled', v)} />
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Glitch Style">
-              <SelectInput value={getDeep(config, 'overlay.glitch.style', 'digital')} onChange={v => updateConfig('overlay.glitch.style', v)}>
-                <option value="digital">Digital</option>
-                <option value="analog">Analog VHS</option>
-                <option value="rgb-split">RGB Split</option>
-                <option value="scan">Scan Lines</option>
-              </SelectInput>
-            </Field>
-            <Field label="Glitch Intensity">
-              <TextInput type="number" value={getDeep(config, 'overlay.glitch.intensity', 30)} onChange={v => updateConfig('overlay.glitch.intensity', v)} placeholder="0-100" />
-            </Field>
-            <Field label="Glitch Frequency">
-              <SelectInput value={getDeep(config, 'overlay.glitch.frequency', 'occasional')} onChange={v => updateConfig('overlay.glitch.frequency', v)}>
-                <option value="rare">Rare</option>
-                <option value="occasional">Occasional</option>
-                <option value="frequent">Frequent</option>
-                <option value="constant">Constant</option>
-              </SelectInput>
-            </Field>
-          </div>
+          <Field label="Glitch Style">
+            <SelectInput value={getDeep(config, 'overlay.glitch.style', 'digital')} onChange={v => updateConfig('overlay.glitch.style', v)}>
+              <option value="digital">Digital</option>
+              <option value="analog">Analog VHS</option>
+              <option value="rgb-split">RGB Split</option>
+              <option value="scan">Scan Lines</option>
+            </SelectInput>
+          </Field>
+          <Field label="Glitch Intensity">
+            <TextInput type="number" value={getDeep(config, 'overlay.glitch.intensity', 30)} onChange={v => updateConfig('overlay.glitch.intensity', v)} placeholder="0-100" />
+          </Field>
+          <Field label="Glitch Frequency">
+            <SelectInput value={getDeep(config, 'overlay.glitch.frequency', 'occasional')} onChange={v => updateConfig('overlay.glitch.frequency', v)}>
+              <option value="rare">Rare</option>
+              <option value="occasional">Occasional</option>
+              <option value="frequent">Frequent</option>
+              <option value="constant">Constant</option>
+            </SelectInput>
+          </Field>
           <Check label="Enable Chromatic Aberration" checked={Boolean(getDeep(config, 'overlay.chromaticAberration.enabled', false))} onChange={v => updateConfig('overlay.chromaticAberration.enabled', v)} />
-          <Slider label="Aberration Amount" value={Number(getDeep(config, 'overlay.chromaticAberration.amount', 2))} onChange={v => updateConfig('overlay.chromaticAberration.amount', v)} min={0} max={10} />
+          <SliderControl label="Aberration Amount" value={Number(getDeep(config, 'overlay.chromaticAberration.amount', 2))} onChange={v => updateConfig('overlay.chromaticAberration.amount', v)} min={0} max={10} />
           <Check label="Enable Lens Distortion" checked={Boolean(getDeep(config, 'overlay.lensDistortion.enabled', false))} onChange={v => updateConfig('overlay.lensDistortion.enabled', v)} />
-          <div className="grid grid-cols-2 gap-3">
-            <Slider label="Distortion Amount" value={Number(getDeep(config, 'overlay.lensDistortion.amount', 0))} onChange={v => updateConfig('overlay.lensDistortion.amount', v)} min={-50} max={50} />
-            <Field label="Distortion Type">
-              <SelectInput value={getDeep(config, 'overlay.lensDistortion.type', 'barrel')} onChange={v => updateConfig('overlay.lensDistortion.type', v)}>
-                <option value="barrel">Barrel</option>
-                <option value="pincushion">Pincushion</option>
-                <option value="fisheye">Fisheye</option>
-              </SelectInput>
-            </Field>
-          </div>
-        </div>
+          <SliderControl label="Distortion Amount" value={Number(getDeep(config, 'overlay.lensDistortion.amount', 0))} onChange={v => updateConfig('overlay.lensDistortion.amount', v)} min={-50} max={50} />
+          <Field label="Distortion Type">
+            <SelectInput value={getDeep(config, 'overlay.lensDistortion.type', 'barrel')} onChange={v => updateConfig('overlay.lensDistortion.type', v)}>
+              <option value="barrel">Barrel</option>
+              <option value="pincushion">Pincushion</option>
+              <option value="fisheye">Fisheye</option>
+            </SelectInput>
+          </Field>
+        </Card>
 
         {/* Frame & Rasio */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Frame & Rasio</h3>
+        <Card title="Frame & Rasio">
           <Check label="Frame Border" checked={Boolean(getDeep(config, 'overlay.frameBorder', false))} onChange={v => updateConfig('overlay.frameBorder', v)} />
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Warna Border"><TextInput value={getDeep(config, 'overlay.borderColor', 'white')} onChange={v => updateConfig('overlay.borderColor', v)} /></Field>
-            <Field label="Ketebalan"><TextInput type="number" value={getDeep(config, 'overlay.borderThickness', 6)} onChange={v => updateConfig('overlay.borderThickness', v)} /></Field>
-            <Field label="Warna Glow"><TextInput value={getDeep(config, 'overlay.glowColor', '#22c55e')} onChange={v => updateConfig('overlay.glowColor', v)} /></Field>
-          </div>
+          <Field label="Warna Border"><TextInput value={getDeep(config, 'overlay.borderColor', 'white')} onChange={v => updateConfig('overlay.borderColor', v)} /></Field>
+          <Field label="Ketebalan"><TextInput type="number" value={getDeep(config, 'overlay.borderThickness', 6)} onChange={v => updateConfig('overlay.borderThickness', v)} /></Field>
+          <Field label="Warna Glow"><TextInput value={getDeep(config, 'overlay.glowColor', '#22c55e')} onChange={v => updateConfig('overlay.glowColor', v)} /></Field>
           <Check label="Letterbox cinematic" checked={Boolean(getDeep(config, 'overlay.letterbox', false))} onChange={v => updateConfig('overlay.letterbox', v)} />
-          <Slider label="Letterbox Size" value={Number(getDeep(config, 'overlay.letterboxSize', 80))} onChange={v => updateConfig('overlay.letterboxSize', v)} min={0} max={180} />
-        </div>
-      </div>
-    </aside>
-  );
+          <SliderControl label="Letterbox Size" value={Number(getDeep(config, 'overlay.letterboxSize', 80))} onChange={v => updateConfig('overlay.letterboxSize', v)} min={0} max={180} />
+        </Card>
+      </div>);
 }

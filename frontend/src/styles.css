@@ -1,4 +1,5 @@
 /* Modern Professional UI for PidioForge Desktop */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
   /* Color Palette - Modern & Professional */
@@ -46,11 +47,12 @@
 
 html, body, #root {
   height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
   background: var(--primary-bg);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
 /* Scrollbar Styling */
@@ -132,11 +134,12 @@ html, body, #root {
   margin-top: 8px;
   padding: 4px 10px;
   background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  border: 2px solid rgba(16, 185, 129, 0.4);
   border-radius: 6px;
   color: var(--accent-success);
   font-size: 11px;
   font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .sidebar button {
@@ -147,7 +150,7 @@ html, body, #root {
   gap: 4px;
   padding: 12px 14px;
   background: transparent;
-  border: 1px solid transparent;
+  border: 2px solid transparent;
   border-radius: var(--radius-md);
   color: var(--text-secondary);
   cursor: pointer;
@@ -190,8 +193,9 @@ html, body, #root {
   margin-top: 16px;
   padding: 14px;
   background: var(--tertiary-bg);
-  border: 1px solid var(--border-subtle);
+  border: 2px solid var(--border-medium);
   border-radius: var(--radius-md);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 .perf > b {
@@ -247,60 +251,76 @@ html, body, #root {
   color: var(--text-muted);
 }
 
-/* Settings Section */
-.section {
-  background: var(--secondary-bg);
-  border-right: 1px solid var(--border-subtle);
-  padding: 20px;
-  overflow-y: auto;
+/* Module Preset Control */
+.modulePreset {
+  display: flex;
+  gap: 6px;
+  align-items: center;
 }
 
-.sectionTop {
-  position: sticky;
-  top: -20px;
-  background: var(--secondary-bg);
-  padding: 0 0 16px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid var(--border-subtle);
-  z-index: 10;
+.modulePreset select,
+.modulePreset button {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 9px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
 }
 
-.section h2 {
-  font-size: 20px;
-  font-weight: 700;
+.modulePreset select {
+  flex: 1;
+  background: var(--tertiary-bg);
+  border: 2px solid var(--border-medium);
   color: var(--text-primary);
-  margin-bottom: 12px;
-  letter-spacing: -0.02em;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.modulePreset button {
+  background: var(--surface);
+  border: 2px solid var(--border-medium);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.modulePreset button:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
 }
 
 .presetBar {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .presetBar select,
 .presetBar button {
-  height: 36px;
-  padding: 0 12px;
-  font-size: 13px;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 10px;
   border-radius: var(--radius-sm);
+  font-weight: 600;
 }
 
 .presetBar select {
   flex: 1;
   background: var(--tertiary-bg);
-  border: 1px solid var(--border-medium);
+  border: 2px solid var(--border-medium);
   color: var(--text-primary);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .presetBar button {
   background: var(--surface);
-  border: 1px solid var(--border-medium);
+  border: 2px solid var(--border-medium);
   color: var(--text-primary);
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .presetBar button:hover {
@@ -315,54 +335,72 @@ html, body, #root {
 .overlayPreviewCard,
 .performanceGroup {
   background: var(--tertiary-bg);
-  border: 1px solid var(--border-subtle);
+  border: 2px solid var(--border-medium);
   border-radius: var(--radius-lg);
-  padding: 16px;
-  margin-bottom: 16px;
+  padding: 10px;
+  margin-bottom: 10px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .targetGroup h3 {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 7px;
+  font-weight: 800;
   color: var(--text-primary);
-  margin-bottom: 16px;
-  padding-bottom: 12px;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
   border-bottom: 1px solid var(--border-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
 }
 
 /* Form Fields */
 .field {
   display: grid;
-  grid-template-columns: 120px 1fr;
-  gap: 12px;
+  grid-template-columns: 90px 1fr;
+  gap: 6px;
   align-items: center;
-  margin: 12px 0;
+  margin: 6px 0;
 }
 
 .field span {
-  font-size: 13px;
+  font-size: 6px;
   color: var(--text-secondary);
   text-align: right;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 
 input,
 select,
 textarea {
   width: 100%;
-  min-height: 38px;
-  padding: 8px 12px;
+  min-height: 20px;
+  padding: 2px 4px;
   background: var(--surface);
-  border: 1px solid var(--border-medium);
+  border: 2px solid var(--border-medium);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: 13px;
-  transition: all var(--transition-fast);
+  font-size: 7px;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 1px 0 rgba(255, 255, 255, 0.05);
+  will-change: border-color, box-shadow;
+  transform: translateZ(0);
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-color: var(--accent-primary);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 1px 0 rgba(255, 255, 255, 0.05), 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
 input:hover,
 select:hover,
 textarea:hover {
   border-color: var(--border-strong);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25), 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 input:focus,
@@ -370,7 +408,7 @@ select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 0 3px rgba(59, 130, 246, 0.3), 0 2px 8px rgba(59, 130, 246, 0.4);
 }
 
 textarea {
@@ -380,28 +418,52 @@ textarea {
   line-height: 1.5;
 }
 
+input[type='checkbox'],
+input[type='radio'] {
+  width: 12px;
+  height: 12px;
+  min-height: 12px;
+  padding: 0;
+  cursor: pointer;
+  accent-color: var(--accent-primary);
+}
+
 /* Buttons */
 button {
-  min-height: 38px;
-  padding: 0 16px;
+  min-height: 28px;
+  padding: 0 12px;
   background: var(--surface);
-  border: 1px solid var(--border-medium);
+  border: 2px solid var(--border-medium);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 4px rgba(0, 0, 0, 0.2);
+  will-change: transform, box-shadow;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+button:active {
+  transition: all 100ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 button:hover {
   background: var(--surface-hover);
   border-color: var(--border-strong);
-  transform: translateY(-1px);
+  transform: translateY(-1px) translateZ(0);
 }
 
 button:active {
-  transform: translateY(0);
+  transform: translateY(0) translateZ(0);
 }
 
 button:disabled {
@@ -412,7 +474,7 @@ button:disabled {
 
 .wide {
   width: 100%;
-  margin-top: 16px;
+  margin-top: 8px;
   background: var(--accent-success);
   border-color: var(--accent-success);
   color: white;
@@ -427,8 +489,8 @@ button:disabled {
 .targetActions {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  margin-top: 16px;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .targetActions button:first-child {
@@ -471,8 +533,8 @@ button:disabled {
 .perfCards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin: 16px 0;
+  gap: 6px;
+  margin: 8px 0;
 }
 
 .targetSummary div,
@@ -481,10 +543,11 @@ button:disabled {
 .queueStats div,
 .perfCards div {
   background: var(--surface);
-  border: 1px solid var(--border-medium);
+  border: 2px solid var(--border-medium);
   border-radius: var(--radius-md);
-  padding: 14px;
+  padding: 8px;
   text-align: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 3px 8px rgba(0, 0, 0, 0.25);
 }
 
 .targetSummary b,
@@ -493,10 +556,11 @@ button:disabled {
 .queueStats b,
 .perfCards b {
   display: block;
-  font-size: 24px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--accent-success);
-  margin-bottom: 4px;
+  margin-bottom: 1px;
+  line-height: 1.1;
 }
 
 .targetSummary small,
@@ -505,8 +569,10 @@ button:disabled {
 .queueStats small,
 .perfCards small {
   display: block;
-  font-size: 11px;
+  font-size: 5px;
   color: var(--text-muted);
+  line-height: 1.1;
+  letter-spacing: 0.2px;
 }
 
 /* Preview Pane */
@@ -527,11 +593,11 @@ button:disabled {
   width: 100%;
   height: 480px;
   background: #000;
-  border: 1px solid var(--border-medium);
+  border: 2px solid var(--border-strong);
   border-radius: var(--radius-lg);
   overflow: hidden;
   position: relative;
-  box-shadow: var(--shadow-lg);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.6);
 }
 
 .previewControls {
@@ -557,10 +623,11 @@ button:disabled {
   gap: 8px;
   padding: 8px 12px;
   background: var(--tertiary-bg);
-  border: 1px solid var(--border-medium);
+  border: 2px solid var(--border-medium);
   border-radius: var(--radius-sm);
   font-size: 12px;
   color: var(--text-secondary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* Lists and Tables */
@@ -569,9 +636,10 @@ button:disabled {
 .queueList {
   max-height: 300px;
   overflow-y: auto;
-  border: 1px solid var(--border-subtle);
+  border: 2px solid var(--border-medium);
   border-radius: var(--radius-md);
   background: var(--tertiary-bg);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 .pair,
@@ -655,6 +723,193 @@ button:disabled {
   }
 }
 
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* Smooth transitions for all interactive elements */
+* {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Performance optimizations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* GPU acceleration for animations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Responsive Design - Mobile & Small Screens */
+@media (max-width: 1024px) {
+  /* Adjust layout for tablets */
+  .settingsPane {
+    width: 300px !important;
+  }
+  
+  .previewArea {
+    height: 55vh !important;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Mobile layout adjustments */
+  .settingsPane {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  .previewArea {
+    height: 50vh !important;
+  }
+  
+  /* Stack panels vertically on mobile */
+  .mainContent {
+    flex-direction: column !important;
+  }
+  
+  /* Increase touch targets for mobile */
+  button {
+    min-height: 36px !important;
+    padding: 0 16px !important;
+    font-size: 13px !important;
+  }
+  
+  input,
+  select,
+  textarea {
+    min-height: 32px !important;
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+  }
+  
+  /* Larger checkboxes for touch */
+  input[type='checkbox'],
+  input[type='radio'] {
+    width: 18px !important;
+    height: 18px !important;
+    min-height: 18px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Extra small screens */
+  .topbar {
+    padding: 0 8px !important;
+  }
+  
+  .sidebar {
+    width: 48px !important;
+  }
+  
+  /* Hide some labels on very small screens */
+  .field span {
+    font-size: 8px !important;
+  }
+  
+  /* Adjust toast notifications for mobile */
+  .fixed.top-4.right-4 {
+    top: 8px !important;
+    right: 8px !important;
+    left: 8px !important;
+  }
+}
+
+/* High contrast mode for accessibility */
+@media (prefers-contrast: high) {
+  :root {
+    --border-medium: rgba(255, 255, 255, 0.3);
+    --border-strong: rgba(255, 255, 255, 0.5);
+  }
+  
+  button,
+  input,
+  select,
+  textarea {
+    border-width: 3px !important;
+  }
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .sidebar,
+  .topbar,
+  footer,
+  button {
+    display: none !important;
+  }
+  
+  .mainContent {
+    width: 100% !important;
+  }
+}
+
 .targetGroup,
 .brandingPreviewCard,
 .spectrumPreviewCard,
@@ -694,22 +949,24 @@ button:disabled {
 
 .warningBox {
   background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  border: 2px solid rgba(245, 158, 11, 0.4);
   border-radius: var(--radius-md);
   padding: 12px;
   margin: 12px 0;
   color: var(--accent-warning);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 6px rgba(245, 158, 11, 0.2);
 }
 
 .diagnostics,
 .estimate {
   background: var(--surface);
-  border: 1px solid var(--border-medium);
+  border: 2px solid var(--border-medium);
   border-radius: var(--radius-md);
   padding: 12px;
   margin: 12px 0;
   font-size: 12px;
   color: var(--text-secondary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* Focus Styles */

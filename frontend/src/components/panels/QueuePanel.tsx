@@ -6,6 +6,8 @@ import { api } from '../../lib/api';
 import { getDeep } from '../../lib/config-path';
 import { cleanUiText } from '../../lib/format';
 import type { Job } from '../../types/app.types';
+import { showToast } from '../ui/Toast';
+import { Card, PresetButtonGroup, StatRow } from '../ui/design-system-components';
 
 type QueueStatus = 'all' | 'standby' | 'rendering' | 'done' | 'failed' | 'cancelled';
 const queueStatusLabelMap: Record<Exclude<QueueStatus, 'all'>, string> = {
@@ -48,48 +50,167 @@ export function QueuePanel({ config }: { config: any }) {
     setJobs(j.jobs || []); setLogs(j.logs || []); setSummary(q); setPerfStatus(ps);
     if (q?.queue?.concurrency) setConcurrency(q.queue.concurrency);
   }
-  useEffect(() => { refreshQueue(); const t = setInterval(refreshQueue, 1500); return () => clearInterval(t); }, []);
+  useEffect(() => {
+    const initialRefresh = window.setTimeout(refreshQueue, 0);
+    const interval = window.setInterval(refreshQueue, 1500);
+    return () => {
+      window.clearTimeout(initialRefresh);
+      window.clearInterval(interval);
+    };
+  }, []);
   async function addJob() {
+    if (!visual) {
+      showToast('error', 'Pilih file visual terlebih dahulu!');
+      return;
+    }
+    if (!audio) {
+      showToast('error', 'Pilih file audio terlebih dahulu!');
+      return;
+    }
+    
     setBusy(true); setMessage('Menambah job ke antrian...');
-    try { const job = await api('/api/jobs', { method: 'POST', body: JSON.stringify({ title, input: { visual, audio, lyrics }, output, config }) }); setMessage(`Job dibuat: ${job.title}`); await refreshQueue(); }
-    catch (e: any) { setMessage(e.message); } finally { setBusy(false); }
+    try { 
+      const job = await api('/api/jobs', { method: 'POST', body: JSON.stringify({ title, input: { visual, audio, lyrics }, output, config }) }); 
+      setMessage(`Job dibuat: ${job.title}`); 
+      showToast('success', `Job berhasil ditambahkan: ${job.title}`);
+      await refreshQueue(); 
+    }
+    catch (e: any) { 
+      setMessage(e.message);
+      showToast('error', `Gagal menambah job: ${e.message}`);
+    } finally { setBusy(false); }
   }
   async function validateManual() {
+    if (!visual) {
+      showToast('error', 'Pilih file visual terlebih dahulu!');
+      return;
+    }
+    if (!audio) {
+      showToast('error', 'Pilih file audio terlebih dahulu!');
+      return;
+    }
+    
     setBusy(true); setMessage('Memvalidasi input render...');
     try {
       const data = await api('/api/render/validate', { method: 'POST', body: JSON.stringify({ input: { visual, audio, lyrics }, outputDir: output || getDeep(config, 'input.output'), config }) });
-      setPreflight(data); setMessage(`Validasi siap. Estimasi ${data.estimate?.durationPerJob || 0}s / ${data.estimate?.estimatedSizeMB || 0} MB.`);
+      setPreflight(data); 
+      const msg = `Validasi siap. Estimasi ${data.estimate?.durationPerJob || 0}s / ${data.estimate?.estimatedSizeMB || 0} MB.`;
+      setMessage(msg);
+      showToast('success', 'Validasi berhasil!');
     } catch (e: any) {
-      setPreflight({ ok: false, errors: [e.message] }); setMessage(e.message);
+      setPreflight({ ok: false, errors: [e.message] }); 
+      setMessage(e.message);
+      showToast('error', `Validasi gagal: ${e.message}`);
     } finally { setBusy(false); }
   }
   async function addBatch() {
+    if (!batchText.trim()) {
+      showToast('warning', 'Masukkan data batch terlebih dahulu!');
+      return;
+    }
+    
     setBusy(true); setMessage('Menambah batch ke antrian...');
     try {
       const items = batchText.split(/\r?\n/).filter(Boolean).map((line, i) => { const [a, l, t, v] = line.split('|').map(x => x?.trim()); return { title: t || `Batch ${i+1}`, visual: v || visual, audio: a, lyrics: l, config }; });
-      const data = await api('/api/jobs/batch', { method: 'POST', body: JSON.stringify({ items }) }); setMessage(`${data.created.length} job batch dibuat`); await refreshQueue();
-    } catch (e: any) { setMessage(e.message); } finally { setBusy(false); }
+      const data = await api('/api/jobs/batch', { method: 'POST', body: JSON.stringify({ items }) }); 
+      setMessage(`${data.created.length} job batch dibuat`); 
+      showToast('success', `${data.created.length} job batch berhasil ditambahkan!`);
+      await refreshQueue();
+    } catch (e: any) { 
+      setMessage(e.message);
+      showToast('error', `Gagal menambah batch: ${e.message}`);
+    } finally { setBusy(false); }
   }
   async function queueAction(path: string, body?: any) {
     setBusy(true);
-    try { const data = await api(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }); setMessage(data?.error || 'Aksi antrian berhasil.'); await refreshQueue(); }
-    catch (e: any) { setMessage(e.message); } finally { setBusy(false); }
+    try { 
+      const data = await api(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }); 
+      setMessage(data?.error || 'Aksi antrian berhasil.'); 
+      showToast('success', 'Aksi berhasil!');
+      await refreshQueue(); 
+    }
+    catch (e: any) { 
+      setMessage(e.message);
+      showToast('error', `Aksi gagal: ${e.message}`);
+    } finally { setBusy(false); }
   }
   async function performanceAction(mode: string) {
     setBusy(true);
-    try { const data = await api('/api/performance/apply', { method: 'POST', body: JSON.stringify({ mode }) }); setMessage(`Preset performa aktif: ${data.config?.performance?.mode || mode}`); await refreshQueue(); }
-    catch (e: any) { setMessage(e.message); } finally { setBusy(false); }
+    try { 
+      const data = await api('/api/performance/apply', { method: 'POST', body: JSON.stringify({ mode }) }); 
+      setMessage(`Preset performa aktif: ${data.config?.performance?.mode || mode}`); 
+      showToast('success', `Performa diatur ke: ${data.config?.performance?.mode || mode}`);
+      await refreshQueue(); 
+    }
+    catch (e: any) { 
+      setMessage(e.message);
+      showToast('error', `Gagal mengatur performa: ${e.message}`);
+    } finally { setBusy(false); }
   }
   async function optimizePerformance() {
     setBusy(true);
-    try { const opt = await api('/api/performance/optimize', { method: 'POST' }); const data = await api('/api/performance/apply', { method: 'POST', body: JSON.stringify({ mode: opt.recommendedMode }) }); setMessage(`Auto optimize: ${data.config?.performance?.mode || opt.recommendedMode}`); await refreshQueue(); }
-    catch (e: any) { setMessage(e.message); } finally { setBusy(false); }
+    try {
+      const opt = await api('/api/performance/optimize', { method: 'POST' });
+      const data = await api('/api/performance/apply', { method: 'POST', body: JSON.stringify({ mode: opt.recommendedMode }) });
+      setMessage(`Auto optimize: ${data.config?.performance?.mode || opt.recommendedMode}`);
+      showToast('success', `Auto optimize: ${data.config?.performance?.mode || opt.recommendedMode}`);
+      await refreshQueue();
+    }
+    catch (e: any) {
+      setMessage(e.message);
+      showToast('error', `Gagal optimize: ${e.message}`);
+    } finally { setBusy(false); }
   }
-  async function startJob(id: string) { await queueAction(`/api/jobs/${id}/start`); }
-  async function cancelJob(id: string) { await queueAction(`/api/jobs/${id}/cancel`); }
-  async function duplicateJob(id: string) { await queueAction(`/api/jobs/${id}/duplicate`); }
-  async function removeJob(id: string) { if (confirm('Hapus job ini dari antrian?')) await queueAction(`/api/jobs/${id}/remove`); }
-  async function moveJob(id: string, to: 'top' | 'bottom') { await queueAction(`/api/jobs/${id}/move`, { to }); }
+  function handlePerformancePreset(id: string) {
+    if (busy) return;
+    if (id === 'auto') {
+      void optimizePerformance();
+      return;
+    }
+    void performanceAction(id);
+  }
+  async function startJob(id: string) {
+    try {
+      await queueAction(`/api/jobs/${id}/start`);
+      showToast('success', 'Job dimulai!');
+    } catch (e: any) {
+      showToast('error', `Gagal memulai job: ${e.message}`);
+    }
+  }
+  async function cancelJob(id: string) { 
+    try {
+      await queueAction(`/api/jobs/${id}/cancel`);
+      showToast('success', 'Job dibatalkan!');
+    } catch (e: any) {
+      showToast('error', `Gagal membatalkan job: ${e.message}`);
+    }
+  }
+  async function duplicateJob(id: string) { 
+    try {
+      await queueAction(`/api/jobs/${id}/duplicate`);
+      showToast('success', 'Job diduplikasi!');
+    } catch (e: any) {
+      showToast('error', `Gagal menduplikasi job: ${e.message}`);
+    }
+  }
+  async function removeJob(id: string) { 
+    if (confirm('Hapus job ini dari antrian?')) {
+      try {
+        await queueAction(`/api/jobs/${id}/remove`);
+        showToast('success', 'Job dihapus!');
+      } catch (e: any) {
+        showToast('error', `Gagal menghapus job: ${e.message}`);
+      }
+    }
+  }
+  async function moveJob(id: string, to: 'top' | 'bottom') { 
+    try {
+      await queueAction(`/api/jobs/${id}/move`, { to });
+      showToast('success', `Job dipindah ke ${to === 'top' ? 'atas' : 'bawah'}!`);
+    } catch (e: any) {
+      showToast('error', `Gagal memindah job: ${e.message}`);
+    }
+  }
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   function handleDragStart(e: React.DragEvent, id: string) {
@@ -126,6 +247,11 @@ export function QueuePanel({ config }: { config: any }) {
       if (!old) continue;
       if (old.status === 'rendering' && job.status === 'done') {
         window.pidioforge?.notify?.(`Render selesai: ${job.title}`, 'Output siap digunakan.');
+        showToast('success', `✅ Render selesai: ${job.title}`);
+      }
+      if (old.status === 'rendering' && job.status === 'failed') {
+        window.pidioforge?.notify?.(`Render gagal: ${job.title}`, 'Periksa log untuk detail.');
+        showToast('error', `❌ Render gagal: ${job.title}`);
       }
       if (old.status === 'rendering' && (job.status === 'failed' || job.status === 'cancelled')) {
         window.pidioforge?.notify?.(`Render gagal: ${job.title}`, job.error || 'Terjadi kesalahan.');
@@ -136,42 +262,24 @@ export function QueuePanel({ config }: { config: any }) {
 
   const shown = jobs.filter(j => filter === 'all' || j.status === filter);
   const counts = summary?.counts || {};
-  return (
-    <aside className="flex flex-col h-full bg-[var(--primary-bg)] overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-subtle)]">
-        <div>
-          <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Render Queue</h2>
-          <p className="text-[12px] text-[var(--text-muted)] mt-1">Batch rendering, job management, dan performance tuning</p>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+  return (<div className="space-y-4">
         {/* Stats Overview */}
-        <div className="grid grid-cols-6 gap-3 p-3 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          {[
+        <StatRow
+          stats={[
             { label: 'Total Job', value: summary?.total || jobs.length, accent: true },
             { label: 'Siaga', value: counts.standby || 0 },
             { label: 'Memproses', value: counts.rendering || 0, accent: true },
             { label: 'Selesai', value: counts.done || 0 },
             { label: 'Gagal', value: (counts.failed || 0) + (counts.cancelled || 0) },
             { label: 'Progress', value: `${summary?.progress || 0}%` },
-          ].map(({ label, value, accent }) => (
-            <div key={label} className="flex flex-col items-center text-center">
-              <span className="text-[10px] text-[var(--text-muted)] mb-1">{label}</span>
-              <span className={cn('text-[14px] font-bold', accent ? 'text-[var(--accent-primary)]' : 'text-[var(--text-primary)]')}>{value}</span>
-            </div>
-          ))}
-        </div>
+          ]}
+        />
 
         {/* Kontrol Antrian */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Kontrol Antrian</h3>
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Concurrency"><TextInput type="number" value={concurrency} onChange={v => setConcurrency(Number(v || 1))} /></Field>
-            <Field label="Status"><TextInput value={summary?.queue?.paused ? 'JEDA' : summary?.queue?.running ? 'JALAN' : 'SIAGA'} onChange={() => {}} /></Field>
-            <Field label="Henti saat error"><SelectInput value={summary?.queue?.stopOnError ? 'Aktif' : 'Mati'} onChange={v => queueAction('/api/queue/settings', { stopOnError: v === 'Aktif' })}><option value="Mati">Mati / lanjut job lain</option><option value="Aktif">Aktif</option></SelectInput></Field>
-          </div>
+        <Card title="Kontrol Antrian">
+          <Field label="Concurrency"><TextInput type="number" value={concurrency} onChange={v => setConcurrency(Number(v || 1))} /></Field>
+          <Field label="Status"><TextInput value={summary?.queue?.paused ? 'JEDA' : summary?.queue?.running ? 'JALAN' : 'SIAGA'} onChange={() => {}} /></Field>
+          <Field label="Henti saat error"><SelectInput value={summary?.queue?.stopOnError ? 'Aktif' : 'Mati'} onChange={v => queueAction('/api/queue/settings', { stopOnError: v === 'Aktif' })}><option value="Mati">Mati / lanjut job lain</option><option value="Aktif">Aktif</option></SelectInput></Field>
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={() => queueAction('/api/queue/start', { concurrency })} disabled={busy} className="px-3 py-1.5 text-[11px] font-semibold text-white bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-[var(--radius-md)] transition-all duration-200">Mulai Antrian</button>
             <button onClick={() => queueAction('/api/queue/pause')} disabled={busy} className="px-3 py-1.5 text-[11px] font-semibold text-white bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-[var(--radius-md)] transition-all duration-200">Jeda</button>
@@ -191,40 +299,34 @@ export function QueuePanel({ config }: { config: any }) {
               {cleanUiText(message)}
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Performa Render */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Performa Render</h3>
-          <div className="grid grid-cols-4 gap-3 p-3 bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-md)]">
-            {[
+        <Card title="Performa Render">
+          <StatRow
+            stats={[
               { label: 'Beban CPU', value: `${perfStatus?.metrics?.cpu ?? 0}%` },
               { label: 'Memori', value: `${perfStatus?.metrics?.memory ?? 0}%` },
               { label: 'Disk', value: `${perfStatus?.metrics?.disk ?? 0}%` },
               { label: 'Encoder', value: perfStatus?.encoder || '-' },
-            ].map(({ label, value }) => (
-              <div key={label} className="flex flex-col items-center text-center">
-                <span className="text-[10px] text-[var(--text-muted)] mb-1">{label}</span>
-                <span className="text-[14px] font-bold text-[var(--text-primary)]">{value}</span>
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Mode Performa"><SelectInput value={perfStatus?.performance?.mode || 'balanced'} onChange={performanceAction}><option value="balanced">Seimbang</option><option value="turbo">Turbo Render</option><option value="quality">Kualitas Max</option><option value="eco">Hemat / Aman Laptop</option></SelectInput></Field>
-            <Field label="Threads FFmpeg"><TextInput type="number" value={perfStatus?.performance?.ffmpegThreads ?? 0} onChange={v => queueAction('/api/performance/settings', { performance: { ffmpegThreads: Number(v || 0) } })} /></Field>
-            <Field label="X264 Preset"><SelectInput value={perfStatus?.performance?.x264Preset || 'medium'} onChange={v => queueAction('/api/performance/settings', { performance: { x264Preset: v } })}><option>ultrafast</option><option>veryfast</option><option>medium</option><option>slow</option></SelectInput></Field>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Max CPU %"><TextInput type="number" value={perfStatus?.performance?.maxCpu ?? 85} onChange={v => queueAction('/api/performance/settings', { performance: { maxCpu: Number(v || 85) } })} /></Field>
-            <Field label="Max Memori %"><TextInput type="number" value={perfStatus?.performance?.maxMemory ?? 85} onChange={v => queueAction('/api/performance/settings', { performance: { maxMemory: Number(v || 85) } })} /></Field>
-            <Field label="Refresh ms"><TextInput type="number" value={perfStatus?.performance?.refreshMs ?? 1500} onChange={v => queueAction('/api/performance/settings', { performance: { refreshMs: Number(v || 1500) } })} /></Field>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <button onClick={optimizePerformance} disabled={busy} className="px-3 py-1.5 text-[11px] font-semibold text-white bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-[var(--radius-md)] transition-all duration-200">AUTO OPTIMIZE</button>
-            <button onClick={() => performanceAction('turbo')} disabled={busy} className="px-3 py-1.5 text-[11px] font-semibold text-white bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-[var(--radius-md)] transition-all duration-200">TURBO</button>
-            <button onClick={() => performanceAction('eco')} disabled={busy} className="px-3 py-1.5 text-[11px] font-semibold text-white bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-[var(--radius-md)] transition-all duration-200">ECO</button>
-            <button onClick={() => performanceAction('quality')} disabled={busy} className="px-3 py-1.5 text-[11px] font-semibold text-white bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-[var(--radius-md)] transition-all duration-200">Kualitas</button>
-          </div>
+            ]}
+          />
+          <Field label="Mode Performa"><SelectInput value={perfStatus?.performance?.mode || 'balanced'} onChange={performanceAction}><option value="balanced">Seimbang</option><option value="turbo">Turbo Render</option><option value="quality">Kualitas Max</option><option value="eco">Hemat / Aman Laptop</option></SelectInput></Field>
+          <Field label="Threads FFmpeg"><TextInput type="number" value={perfStatus?.performance?.ffmpegThreads ?? 0} onChange={v => queueAction('/api/performance/settings', { performance: { ffmpegThreads: Number(v || 0) } })} /></Field>
+          <Field label="X264 Preset"><SelectInput value={perfStatus?.performance?.x264Preset || 'medium'} onChange={v => queueAction('/api/performance/settings', { performance: { x264Preset: v } })}><option>ultrafast</option><option>veryfast</option><option>medium</option><option>slow</option></SelectInput></Field>
+          <Field label="Max CPU %"><TextInput type="number" value={perfStatus?.performance?.maxCpu ?? 85} onChange={v => queueAction('/api/performance/settings', { performance: { maxCpu: Number(v || 85) } })} /></Field>
+          <Field label="Max Memori %"><TextInput type="number" value={perfStatus?.performance?.maxMemory ?? 85} onChange={v => queueAction('/api/performance/settings', { performance: { maxMemory: Number(v || 85) } })} /></Field>
+          <Field label="Refresh ms"><TextInput type="number" value={perfStatus?.performance?.refreshMs ?? 1500} onChange={v => queueAction('/api/performance/settings', { performance: { refreshMs: Number(v || 1500) } })} /></Field>
+          <PresetButtonGroup
+            activeId={perfStatus?.performance?.mode || 'balanced'}
+            presets={[
+              { id: 'auto', icon: 'A', label: 'AUTO OPTIMIZE' },
+              { id: 'turbo', icon: 'T', label: 'TURBO' },
+              { id: 'eco', icon: 'E', label: 'ECO' },
+              { id: 'quality', icon: 'Q', label: 'Kualitas' },
+            ]}
+            onChange={handlePerformancePreset}
+          />
           {perfStatus?.warnings?.length ? (
             <div className="p-3 bg-[var(--secondary-bg)] border-l-4 border-[var(--accent-warning)] rounded-[var(--radius-lg)]">
               <h4 className="text-[11px] font-bold text-[var(--accent-warning)] mb-2">⚠ Warning performa:</h4>
@@ -237,11 +339,10 @@ export function QueuePanel({ config }: { config: any }) {
               </ul>
             </div>
           ) : null}
-        </div>
+        </Card>
 
         {/* Tambah Job Manual */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Tambah Job Manual</h3>
+        <Card title="Tambah Job Manual">
           <Field label="Judul"><TextInput value={title} onChange={setTitle} /></Field>
           <Field label="Visual"><PathInput value={visual} onChange={setVisual} filter="visual" /></Field>
           <Field label="Audio"><PathInput value={audio} onChange={setAudio} filter="audio" /></Field>
@@ -259,18 +360,16 @@ export function QueuePanel({ config }: { config: any }) {
               {(preflight.warnings || []).map((x: string) => <small key={x} className="block text-[var(--accent-warning)]">{x}</small>)}
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Tambah Batch Cepat */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Tambah Batch Cepat</h3>
+        <Card title="Tambah Batch Cepat">
           <textarea className="w-full bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] text-[var(--text-primary)] text-[11px] min-h-[56px] px-3 py-2 resize-y font-mono focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50" value={batchText} onChange={e => setBatchText(e.target.value)} placeholder="Satu baris per job. Format: audio.mp3 | lirik.lrc | Judul | visual.mp4" />
           <button onClick={addBatch} disabled={busy} className="w-full px-3 py-2 text-[11px] font-semibold text-white bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-[var(--radius-md)] transition-all duration-200">+ Tambah Batch Dari Daftar</button>
-        </div>
+        </Card>
 
         {/* Daftar Antrian */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Daftar Antrian</h3>
+        <Card title="Daftar Antrian">
           <div className="flex items-center gap-2 flex-wrap">
             {['all', 'standby', 'rendering', 'done', 'failed', 'cancelled'].map(s => (
               <button key={s} onClick={() => setFilter(s as any)} className={cn('px-3 py-1.5 text-[11px] font-semibold rounded-[var(--radius-md)] transition-all duration-200', filter === s ? 'text-white bg-[var(--accent-primary)]' : 'text-[var(--text-primary)] bg-[var(--tertiary-bg)] hover:bg-[var(--tertiary-bg)]/80 border border-[var(--border-subtle)]')}>
@@ -301,14 +400,11 @@ export function QueuePanel({ config }: { config: any }) {
               </div>
             ))}
           </div>
-        </div>
+        </Card>
 
         {/* Log Antrian */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Log Antrian</h3>
+        <Card title="Log Antrian">
           <pre className="bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] text-[10px] text-[var(--text-muted)] p-3 max-h-[200px] overflow-auto break-all whitespace-pre-wrap font-mono">{logs.slice(-24).join('\n') || 'Belum ada log.'}</pre>
-        </div>
-      </div>
-    </aside>
-  );
+        </Card>
+      </div>);
 }

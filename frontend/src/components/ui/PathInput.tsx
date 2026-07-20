@@ -79,7 +79,21 @@ function localPathType(file = ''): string {
   return ext ? 'file' : '';
 }
 
-export function PathInput({ value, onChange, placeholder, kind = 'file', filter = 'media' }: { value: string; onChange: (v: string) => void; placeholder?: string; kind?: PathKind; filter?: PathFilter }) {
+export function PathInput({
+  id,
+  value,
+  onChange,
+  placeholder,
+  kind = 'file',
+  filter = 'media',
+}: {
+  id?: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  kind?: PathKind;
+  filter?: PathFilter;
+}) {
   const [info, setInfo] = useState<PathInfo | null>(null);
   const [recent, setRecent] = useState<string[]>(() => readRecent(kind, filter));
   const [dragging, setDragging] = useState(false);
@@ -149,8 +163,12 @@ export function PathInput({ value, onChange, placeholder, kind = 'file', filter 
   }
   useEffect(() => {
     let cancelled = false;
-    if (!value) { setInfo(null); return; }
     const t = setTimeout(async () => {
+      if (!value) {
+        setInfo(null);
+        return;
+      }
+
       try {
         const data = await api('/api/path/info', { method: 'POST', body: JSON.stringify({ path: value, kind, filter }) });
         if (!cancelled) {
@@ -178,9 +196,10 @@ export function PathInput({ value, onChange, placeholder, kind = 'file', filter 
       onDrop={onDrop}
     >
       <div className="flex gap-2 items-center">
-        <input 
-          value={value ?? ''} 
-          placeholder={placeholder || pickerPlaceholder(kind, filter)} 
+        <input
+          id={id}
+          value={value ?? ''}
+          placeholder={placeholder || pickerPlaceholder(kind, filter)}
           onChange={e => onChange(e.target.value)}
           className="flex-1 min-w-0 bg-[var(--surface)] border border-[var(--border-medium)] rounded-[var(--radius-sm)] text-[var(--text-primary)] text-[13px] min-h-[38px] px-3 py-2 outline-none focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[rgba(59,130,246,0.1)] transition-all placeholder:text-[var(--text-muted)]"
         />

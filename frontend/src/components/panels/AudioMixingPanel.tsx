@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Field, Check, TextInput, SelectInput, Slider } from '../ui/form-controls';
+import { Field, Check, TextInput, SelectInput } from '../ui/form-controls';
 import { PathInput } from '../ui/PathInput';
 import { WaveformDisplay, WaveformSkeleton } from '../ui/WaveformDisplay';
 import { cn } from '../../utils/cn';
 import { api } from '../../lib/api';
 import { getDeep } from '../../lib/config-path';
 import { cleanUiText } from '../../lib/format';
+import { Callout, Card, SliderControl } from '../ui/design-system-components';
 
 export function AudioMixingPanel({ config, updateConfig }: { config: any; updateConfig: (path: string, value: any) => void }) {
   const [message, setMessage] = useState('');
@@ -93,20 +94,10 @@ export function AudioMixingPanel({ config, updateConfig }: { config: any; update
   const peaks = analysis?.waveform?.peaks || validation?.waveform?.peaks || [];
   const loud = analysis?.loudness || validation?.loudness;
   const beats = analysis?.beats || validation?.beats || [];
-  return (
-    <aside className="flex flex-col h-full bg-[var(--primary-bg)] overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-subtle)]">
-        <div>
-          <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Audio Mixing</h2>
-          <p className="text-[12px] text-[var(--text-muted)] mt-1">Volume, EQ, mastering, dan efek audio</p>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+  return (<div className="space-y-4">
         {/* Audio Stats with Loudness Metering */}
         <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <div className="grid grid-cols-4 gap-3">
+          <div className="space-y-3">
             <div className="flex flex-col items-center text-center">
               <span className="text-[11px] text-[var(--text-muted)] mb-1">MASTER</span>
               <span className="text-[16px] font-bold text-[var(--accent-primary)]">{getDeep(config, 'audio.masterGain', 100)}%</span>
@@ -209,14 +200,13 @@ export function AudioMixingPanel({ config, updateConfig }: { config: any; update
         </div>
 
         {/* Preset & Cek Aman */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Preset & Cek Aman</h3>
-          <div className="grid grid-cols-3 gap-3">
+        <Card title="Preset & Cek Aman">
+          <div className="space-y-3">
             <Field label="Preset Platform"><SelectInput value={getDeep(config, 'audio.platformPreset', 'custom')} onChange={applyPreset}><option value="custom">Kustom</option><option value="youtube-music">YouTube Music</option><option value="youtube-shorts">YouTube Shorts</option><option value="tiktok-loud">TikTok Kencang</option><option value="podcast-clean">Podcast Bersih</option><option value="background-soft">Latar Lembut</option><option value="cinematic-bass">Bass Sinematik</option></SelectInput></Field>
             <Field label="Mode Mix"><SelectInput value={getDeep(config, 'audio.mixMode', 'single')} onChange={v => updateConfig('audio.mixMode', v)}><option value="single">Audio tunggal</option><option value="playlist">Crossfade playlist</option><option value="ambient">Audio + ambience</option></SelectInput></Field>
             <Field label="Urutan"><SelectInput value={getDeep(config, 'audio.order', 'acak')} onChange={v => updateConfig('audio.order', v)}><option>acak</option><option>urut</option><option>acak unik</option></SelectInput></Field>
           </div>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="space-y-3">
             <button onClick={validateAudio} disabled={busy} className="px-4 py-2 text-[12px] font-semibold text-white bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-[var(--radius-md)] transition-all duration-200">Cek Audio</button>
             <button onClick={analyzeAudio} disabled={busy} className="px-4 py-2 text-[12px] font-semibold text-white bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-[var(--radius-md)] transition-all duration-200">Analisis Waveform</button>
             <button onClick={previewAudio} disabled={busy || previewing} className="px-4 py-2 text-[12px] font-semibold text-white bg-[var(--accent-success)] hover:bg-[var(--accent-success)]/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-[var(--radius-md)] transition-all duration-200">
@@ -271,26 +261,24 @@ export function AudioMixingPanel({ config, updateConfig }: { config: any; update
               ))}
             </div>
           )}
-        </div>
+        </Card>
         {/* Volume & Mastering */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Volume & Mastering</h3>
-          <Slider label="Volume Video" value={Number(getDeep(config, 'audio.videoVolume', 0))} onChange={v => updateConfig('audio.videoVolume', v)} min={0} max={150} />
-          <Slider label="Volume Audio/BGM" value={Number(getDeep(config, 'audio.bgmVolume', 100))} onChange={v => updateConfig('audio.bgmVolume', v)} min={0} max={150} />
-          <Slider label="Penguatan Master" value={Number(getDeep(config, 'audio.masterGain', 100))} onChange={v => updateConfig('audio.masterGain', v)} min={0} max={150} />
-          <div className="grid grid-cols-3 gap-3">
+        <Card title="Volume & Mastering">
+          <SliderControl label="Volume Video" value={Number(getDeep(config, 'audio.videoVolume', 0))} onChange={v => updateConfig('audio.videoVolume', v)} min={0} max={150} />
+          <SliderControl label="Volume Audio/BGM" value={Number(getDeep(config, 'audio.bgmVolume', 100))} onChange={v => updateConfig('audio.bgmVolume', v)} min={0} max={150} />
+          <SliderControl label="Penguatan Master" value={Number(getDeep(config, 'audio.masterGain', 100))} onChange={v => updateConfig('audio.masterGain', v)} min={0} max={150} />
+          <div className="space-y-3">
             <Field label="Bitrate Audio"><SelectInput value={getDeep(config, 'audio.audioBitrate', '192k')} onChange={v => updateConfig('audio.audioBitrate', v)}><option>128k</option><option>192k</option><option>256k</option><option>320k</option></SelectInput></Field>
             <Field label="Fade Masuk"><TextInput type="number" value={getDeep(config, 'audio.fadeIn', 0.6)} onChange={v => updateConfig('audio.fadeIn', v)} /></Field>
             <Field label="Fade Keluar"><TextInput type="number" value={getDeep(config, 'audio.fadeOut', 1.2)} onChange={v => updateConfig('audio.fadeOut', v)} /></Field>
           </div>
           <Check label="Normalize loudness (-14 LUFS)" checked={Boolean(getDeep(config, 'audio.normalize', true))} onChange={v => updateConfig('audio.normalize', v)} />
           <Check label="Limiter anti pecah" checked={Boolean(getDeep(config, 'audio.limiter', true))} onChange={v => updateConfig('audio.limiter', v)} />
-        </div>
+        </Card>
 
         {/* Audio Sync & Format */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Audio Sync & Format</h3>
-          <div className="grid grid-cols-3 gap-3">
+        <Card title="Audio Sync & Format">
+          <div className="space-y-3">
             <Field label="Audio Offset (ms)">
               <TextInput 
                 type="number" 
@@ -316,7 +304,7 @@ export function AudioMixingPanel({ config, updateConfig }: { config: any; update
               />
             </Field>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-3">
             <Field label="Sample Rate">
               <SelectInput 
                 value={getDeep(config, 'audio.sampleRate', '48000')} 
@@ -352,21 +340,20 @@ export function AudioMixingPanel({ config, updateConfig }: { config: any; update
             checked={Boolean(getDeep(config, 'audio.monoCheck', false))} 
             onChange={v => updateConfig('audio.monoCheck', v)} 
           />
-          <div className="px-3 py-2 bg-[var(--tertiary-bg)] rounded-[var(--radius-md)] text-[10px] text-[var(--text-muted)]">
-            💡 Tip: Gunakan offset untuk sinkronisasi audio-video. Stereo width: 0=Mono, 100=Normal, 200=Wide
-          </div>
-        </div>
+          <Callout type="tip">
+            Gunakan offset untuk sinkronisasi audio-video. Stereo width: 0=Mono, 100=Normal, 200=Wide
+          </Callout>
+        </Card>
 
         {/* 5-Band Parametric EQ */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">5-Band Parametric EQ</h3>
-          <Slider label="Sub Bass (20-60Hz)" value={Number(getDeep(config, 'audio.subBassGain', 0))} onChange={v => updateConfig('audio.subBassGain', v)} min={-12} max={12} />
-          <Slider label="Bass (60-250Hz)" value={Number(getDeep(config, 'audio.bassGain', 0))} onChange={v => updateConfig('audio.bassGain', v)} min={-12} max={12} />
-          <Slider label="Low Mid (250Hz-2kHz)" value={Number(getDeep(config, 'audio.lowMidGain', 0))} onChange={v => updateConfig('audio.lowMidGain', v)} min={-12} max={12} />
-          <Slider label="High Mid (2k-6kHz)" value={Number(getDeep(config, 'audio.highMidGain', 0))} onChange={v => updateConfig('audio.highMidGain', v)} min={-12} max={12} />
-          <Slider label="Treble (6k-20kHz)" value={Number(getDeep(config, 'audio.trebleGain', 0))} onChange={v => updateConfig('audio.trebleGain', v)} min={-12} max={12} />
-          <Slider label="Pan L/R" value={Number(getDeep(config, 'audio.pan', 0))} onChange={v => updateConfig('audio.pan', v)} min={-100} max={100} />
-          <div className="grid grid-cols-3 gap-3">
+        <Card title="5-Band Parametric EQ">
+          <SliderControl label="Sub Bass (20-60Hz)" value={Number(getDeep(config, 'audio.subBassGain', 0))} onChange={v => updateConfig('audio.subBassGain', v)} min={-12} max={12} />
+          <SliderControl label="Bass (60-250Hz)" value={Number(getDeep(config, 'audio.bassGain', 0))} onChange={v => updateConfig('audio.bassGain', v)} min={-12} max={12} />
+          <SliderControl label="Low Mid (250Hz-2kHz)" value={Number(getDeep(config, 'audio.lowMidGain', 0))} onChange={v => updateConfig('audio.lowMidGain', v)} min={-12} max={12} />
+          <SliderControl label="High Mid (2k-6kHz)" value={Number(getDeep(config, 'audio.highMidGain', 0))} onChange={v => updateConfig('audio.highMidGain', v)} min={-12} max={12} />
+          <SliderControl label="Treble (6k-20kHz)" value={Number(getDeep(config, 'audio.trebleGain', 0))} onChange={v => updateConfig('audio.trebleGain', v)} min={-12} max={12} />
+          <SliderControl label="Pan L/R" value={Number(getDeep(config, 'audio.pan', 0))} onChange={v => updateConfig('audio.pan', v)} min={-100} max={100} />
+          <div className="space-y-3">
             <Field label="High-pass Hz"><TextInput type="number" value={getDeep(config, 'audio.highPass', 0)} onChange={v => updateConfig('audio.highPass', v)} /></Field>
             <Field label="Low-pass Hz"><TextInput type="number" value={getDeep(config, 'audio.lowPass', 0)} onChange={v => updateConfig('audio.lowPass', v)} /></Field>
             <Field label="Noise Gate Threshold"><TextInput type="number" value={getDeep(config, 'audio.noiseGateThreshold', -45)} onChange={v => updateConfig('audio.noiseGateThreshold', v)} /></Field>
@@ -374,28 +361,27 @@ export function AudioMixingPanel({ config, updateConfig }: { config: any; update
           <Check label="De-hum 50Hz ringan" checked={Boolean(getDeep(config, 'audio.deHum', false))} onChange={v => updateConfig('audio.deHum', v)} />
           <Check label="Noise gate" checked={Boolean(getDeep(config, 'audio.noiseGate', false))} onChange={v => updateConfig('audio.noiseGate', v)} />
           <Check label="Compressor" checked={Boolean(getDeep(config, 'audio.compressor', false))} onChange={v => updateConfig('audio.compressor', v)} />
-          <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-3">
             <Field label="Threshold (dB)"><TextInput type="number" value={getDeep(config, 'audio.compressorThreshold', -18)} onChange={v => updateConfig('audio.compressorThreshold', v)} /></Field>
             <Field label="Ratio"><TextInput type="number" value={getDeep(config, 'audio.compressorRatio', 3)} onChange={v => updateConfig('audio.compressorRatio', v)} /></Field>
             <Field label="Attack (ms)"><TextInput type="number" value={getDeep(config, 'audio.compressorAttack', 5)} onChange={v => updateConfig('audio.compressorAttack', v)} placeholder="1-100" /></Field>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-3">
             <Field label="Release (ms)"><TextInput type="number" value={getDeep(config, 'audio.compressorRelease', 50)} onChange={v => updateConfig('audio.compressorRelease', v)} placeholder="10-1000" /></Field>
             <Field label="Knee (dB)"><TextInput type="number" value={getDeep(config, 'audio.compressorKnee', 2)} onChange={v => updateConfig('audio.compressorKnee', v)} placeholder="0-10" /></Field>
             <Field label="Makeup Gain (dB)"><TextInput type="number" value={getDeep(config, 'audio.compressorMakeup', 0)} onChange={v => updateConfig('audio.compressorMakeup', v)} placeholder="0-24" /></Field>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-3">
             <Field label="Level Ducking %"><TextInput type="number" value={getDeep(config, 'audio.duckingLevel', 35)} onChange={v => updateConfig('audio.duckingLevel', v)} /></Field>
           </div>
           <Check label="Auto duck saat CTA/voice muncul" checked={Boolean(getDeep(config, 'audio.autoDuck', false))} onChange={v => updateConfig('audio.autoDuck', v)} />
-        </div>
+        </Card>
 
         {/* Reverb & Delay Effects */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Reverb & Delay Effects</h3>
+        <Card title="Reverb & Delay Effects">
           <Check label="Enable Reverb" checked={Boolean(getDeep(config, 'audio.reverb', false))} onChange={v => updateConfig('audio.reverb', v)} />
-          <Slider label="Reverb Amount" value={Number(getDeep(config, 'audio.reverbAmount', 20))} onChange={v => updateConfig('audio.reverbAmount', v)} min={0} max={100} />
-          <div className="grid grid-cols-2 gap-3">
+          <SliderControl label="Reverb Amount" value={Number(getDeep(config, 'audio.reverbAmount', 20))} onChange={v => updateConfig('audio.reverbAmount', v)} min={0} max={100} />
+          <div className="space-y-3">
             <Field label="Reverb Type">
               <SelectInput value={getDeep(config, 'audio.reverbType', 'room')} onChange={v => updateConfig('audio.reverbType', v)}>
                 <option value="room">Room</option>
@@ -413,7 +399,7 @@ export function AudioMixingPanel({ config, updateConfig }: { config: any; update
             </Field>
           </div>
           <Check label="Enable Delay/Echo" checked={Boolean(getDeep(config, 'audio.delay', false))} onChange={v => updateConfig('audio.delay', v)} />
-          <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-3">
             <Field label="Delay Time (ms)">
               <TextInput type="number" value={getDeep(config, 'audio.delayTime', 250)} onChange={v => updateConfig('audio.delayTime', v)} placeholder="50-2000" />
             </Field>
@@ -424,39 +410,36 @@ export function AudioMixingPanel({ config, updateConfig }: { config: any; update
               <TextInput type="number" value={getDeep(config, 'audio.delayMix', 25)} onChange={v => updateConfig('audio.delayMix', v)} placeholder="0-100" />
             </Field>
           </div>
-          <div className="px-3 py-2 bg-[var(--tertiary-bg)] rounded-[var(--radius-md)] text-[10px] text-[var(--text-muted)]">
-            💡 Reverb menambah ruang & kedalaman. Delay menciptakan echo. Gunakan dengan hati-hati untuk hasil natural.
-          </div>
-        </div>
+          <Callout type="tip">
+            Reverb menambah ruang & kedalaman. Delay menciptakan echo. Gunakan dengan hati-hati untuk hasil natural.
+          </Callout>
+        </Card>
 
         {/* Ambient, Voice & FX */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Ambient, Voice & FX</h3>
+        <Card title="Ambient, Voice & FX">
           <Check label="ASM Mode (Ambient/BGM Loop)" checked={Boolean(getDeep(config, 'audio.asmMode', false))} onChange={v => updateConfig('audio.asmMode', v)} />
           <Field label="File Ambient"><PathInput value={getDeep(config, 'audio.ambientLoop', '')} onChange={v => updateConfig('audio.ambientLoop', v)} placeholder="C:/audio/ambient.mp3" filter="audio" /></Field>
-          <Slider label="Vol Ambient" value={Number(getDeep(config, 'audio.ambientVolume', 15))} onChange={v => updateConfig('audio.ambientVolume', v)} min={0} max={100} />
+          <SliderControl label="Vol Ambient" value={Number(getDeep(config, 'audio.ambientVolume', 15))} onChange={v => updateConfig('audio.ambientVolume', v)} min={0} max={100} />
           <Field label="Voice Track"><PathInput value={getDeep(config, 'audio.voiceTrack', '')} onChange={v => updateConfig('audio.voiceTrack', v)} filter="audio" /></Field>
-          <Slider label="Volume Voice" value={Number(getDeep(config, 'audio.voiceVolume', 100))} onChange={v => updateConfig('audio.voiceVolume', v)} min={0} max={150} />
+          <SliderControl label="Volume Voice" value={Number(getDeep(config, 'audio.voiceVolume', 100))} onChange={v => updateConfig('audio.voiceVolume', v)} min={0} max={150} />
           <Field label="Effect Track"><PathInput value={getDeep(config, 'audio.effectTrack', '')} onChange={v => updateConfig('audio.effectTrack', v)} filter="audio" /></Field>
-          <Slider label="Volume Efek" value={Number(getDeep(config, 'audio.effectVolume', 80))} onChange={v => updateConfig('audio.effectVolume', v)} min={0} max={150} />
-        </div>
+          <SliderControl label="Volume Efek" value={Number(getDeep(config, 'audio.effectVolume', 80))} onChange={v => updateConfig('audio.effectVolume', v)} min={0} max={150} />
+        </Card>
 
         {/* Beat & Reactive FX */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Beat & Reactive FX</h3>
+        <Card title="Beat & Reactive FX">
           <Check label="Beat detection nyata dari waveform" checked={Boolean(getDeep(config, 'audio.beatDetection', true))} onChange={v => updateConfig('audio.beatDetection', v)} />
           <Field label="Reactive FX"><SelectInput value={getDeep(config, 'audio.reactiveFx', 'Beat Flash')} onChange={v => updateConfig('audio.reactiveFx', v)}><option>Beat Flash</option><option>Logo Pulse</option><option>Background Jedug</option><option>Mati</option></SelectInput></Field>
-          <Slider label="Strength" value={Number(getDeep(config, 'audio.reactiveStrength', 40))} onChange={v => updateConfig('audio.reactiveStrength', v)} min={0} max={100} />
+          <SliderControl label="Strength" value={Number(getDeep(config, 'audio.reactiveStrength', 40))} onChange={v => updateConfig('audio.reactiveStrength', v)} min={0} max={100} />
           <Field label="Warna Flash"><SelectInput value={getDeep(config, 'audio.beatFlashColor', 'white')} onChange={v => updateConfig('audio.beatFlashColor', v)}><option>white</option><option>red</option><option>blue</option><option>yellow</option><option>cyan</option></SelectInput></Field>
-        </div>
+        </Card>
 
         {/* Playlist & Stems */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Playlist & Stems</h3>
+        <Card title="Playlist & Stems">
           <Field label="Lagu Intro"><textarea className="w-full bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] text-[var(--text-primary)] text-[11px] min-h-[42px] px-2 py-1.5 resize-y focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50" value={introText} onChange={e => setIntroText(e.target.value)} onBlur={commitIntro} placeholder="Satu path per baris" /></Field>
           <Field label="Slot Lagu"><textarea className="w-full bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] text-[var(--text-primary)] text-[11px] min-h-[42px] px-2 py-1.5 resize-y focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50" value={slotText} onChange={e => setSlotText(e.target.value)} onBlur={commitSlots} placeholder="Satu path per baris" /></Field>
           <Field label="Lagu Terakhir"><PathInput value={getDeep(config, 'audio.endingSong', '')} onChange={v => updateConfig('audio.endingSong', v)} filter="audio" /></Field>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-3">
             <Field label="Crossfade"><TextInput type="number" value={getDeep(config, 'audio.crossfade', 0.8)} onChange={v => updateConfig('audio.crossfade', v)} /></Field>
             <Field label="Jeda Sunyi"><TextInput type="number" value={getDeep(config, 'audio.silenceBetween', 0)} onChange={v => updateConfig('audio.silenceBetween', v)} /></Field>
             <Field label="Volume Akhir"><TextInput type="number" value={getDeep(config, 'audio.endingVolume', 100)} onChange={v => updateConfig('audio.endingVolume', v)} /></Field>
@@ -540,17 +523,16 @@ export function AudioMixingPanel({ config, updateConfig }: { config: any; update
               <Field label=""><textarea className="w-full bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] text-[var(--text-primary)] text-[11px] min-h-[42px] px-2 py-1.5 resize-y focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 mt-2" value={stemsText} onChange={e => setStemsText(e.target.value)} onBlur={commitStems} placeholder="Format: nama|path|volume|pan\nvocal|C:/vocal.wav|100|0" /></Field>
             </details>
           </div>
-        </div>
+        </Card>
 
         {/* Audio Export Options */}
-        <div className="space-y-3 p-4 bg-[var(--secondary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]">
-          <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">Audio Export Options</h3>
+        <Card title="Audio Export Options">
           <Check 
             label="Export Audio Only (tanpa video)" 
             checked={Boolean(getDeep(config, 'audio.exportAudioOnly', false))} 
             onChange={v => updateConfig('audio.exportAudioOnly', v)} 
           />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-3">
             <Field label="Export Format">
               <SelectInput 
                 value={getDeep(config, 'audio.exportFormat', 'mp3')} 
@@ -575,11 +557,9 @@ export function AudioMixingPanel({ config, updateConfig }: { config: any; update
               </SelectInput>
             </Field>
           </div>
-          <div className="px-3 py-2 bg-[var(--tertiary-bg)] rounded-[var(--radius-md)] text-[10px] text-[var(--text-muted)]">
-            💡 Export audio only untuk mendapatkan file audio terpisah tanpa video. Berguna untuk podcast atau musik.
-          </div>
-        </div>
-      </div>
-    </aside>
-  );
+          <Callout type="tip">
+            Export audio only untuk mendapatkan file audio terpisah tanpa video. Berguna untuk podcast atau musik.
+          </Callout>
+        </Card>
+      </div>);
 }

@@ -334,6 +334,88 @@ export async function handleRequest(req, res, url, ctx) {
     if (req.method === 'POST' && url.pathname === '/api/jobs/start-next') { const next = state.jobs.find(j => j.status === 'standby' || j.status === 'failed'); if (!next) return json(res, 404, { error: 'tidak ada job standby' }); return json(res, 202, await startJob(next.id, processes)); }
     const cancel = url.pathname.match(/^\/api\/jobs\/([^/]+)\/cancel$/); if (req.method === 'POST' && cancel) { const id = cancel[1]; const child = processes.get(id); if (child) child.kill('SIGTERM'); const j = state.jobs.find(x=>x.id===id); if (j) { j.status='cancelled'; j.error='Dibatalkan user'; } addLog(state, `job dibatalkan: ${id}`); await saveState(state); return json(res,200,{ok:true}); }
     if (req.method === 'POST' && url.pathname === '/api/jobs/reset') { for (const child of processes.values()) child.kill('SIGTERM'); processes.clear(); state.jobs = []; addLog(state, 'antrian direset.'); await saveState(state); return json(res, 200, { ok: true }); }
+    // --- STUB ENDPOINTS (belum implementasi penuh, mencegah 404) ---
+    if (req.method === 'POST' && url.pathname === '/api/audio/preview') {
+      const b = await body(req); const config = deepMerge(activeConfig(state), b.config || {});
+      const audio = config.input?.audio;
+      if (!audio) return json(res, 400, { error: 'File audio belum dipilih' });
+      const info = await ffprobeInfo(audio);
+      if (!info.ok || !info.hasAudio) return json(res, 400, { error: 'File audio tidak valid' });
+      const previewDir = path.join(workspaceDir, 'previews');
+      await mkdir(previewDir, { recursive: true });
+      const duration = Math.max(2, Math.min(30, Number(b.duration || 10)));
+      const output = path.join(previewDir, `${safeId('audio-preview')}.mp3`);
+      const preview = await runCmd(FFMPEG, ['-y', '-ss', '0', '-t', String(duration), '-i', audio, '-vn', '-c:a', 'libmp3lame', '-b:a', '192k', output]);
+      if (!preview.ok) return json(res, 500, { error: preview.stderr || 'Gagal membuat preview audio' });
+      return json(res, 200, { ok: true, url: `/api/media/file?path=${encodeURIComponent(output)}`, output, duration, stub: false });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/lyrics/fetch') {
+      const b = await body(req);
+      return json(res, 200, { ok: false, lyrics: '', source: b.source || 'none', stub: true, message: 'Fitur fetch lyrics online belum tersedia. Tempel lirik manual atau gunakan file LRC/SRT.' });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/lyrics/transcribe') {
+      const b = await body(req); const config = deepMerge(activeConfig(state), b.config || {});
+      const audio = b.audio || config.input?.audio;
+      const lyricFile = config.lyrics?.file;
+      if (lyricFile && existsSync(lyricFile)) {
+        const parsed = await readLyricsFile(lyricFile);
+        const text = parsed.map(r => r.text).join('\n');
+        return json(res, 200, { ok: true, text, segments: parsed, confidence: 0.85, source: 'file-fallback', message: `Parsed ${parsed.length} baris dari file lirik yang sudah ada.` });
+      }
+      if (!audio) return json(res, 400, { error: 'File audio belum dipilih dan file lirik tidak tersedia.' });
+      return json(res, 200, { ok: false, text: '', segments: [], confidence: 0, message: 'AI transcription engine (Whisper) belum terinstall. Gunakan file LRC/SRT atau tempel lirik manual.' });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/lyrics/smart-sync') {
+      const b = await body(req); const config = deepMerge(activeConfig(state), b.config || {});
+      const audio = config.input?.audio; const lines = b.lines || [];
+      if (!lines.length) return json(res, 400, { error: 'Belum ada baris lirik untuk disinkronisasi.' });
+      const info = audio ? await ffprobeInfo(audio) : { duration: 0 };
+      const duration = info.duration || config.target?.duration || 180;
+      const waveform = audio ? await waveformData(audio, Math.min(duration, 90), 180) : { peaks: [] };
+      const beats = detectBeatsFromPeaks(waveform.peaks, waveform.seconds || Math.min(duration, 90));
+      const text = lines.map(r => r.text || '').join('\n');
+      const syncedLines = autoAlignLyrics(text, duration, config, beats);
+      const quality = scoreLyricTimeline(syncedLines, duration, config, beats);
+      return json(res, 200, { ok: true, syncedLines, accuracy: Math.min(0.95, (quality.score || 0) / 100), beats, quality, duration });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/lyrics/detect-language') {
+      const b = await body(req); const text = b.text || (b.lines || []).map(r => r.text || '').join(' ');
+      if (!text.trim()) return json(res, 400, { error: 'Tidak ada teks untuk dideteksi.' });
+      const arabic = /[؀-ۿ]/.test(text);
+      const cjk = /[　-鿿가-힯]/.test(text);
+      const latin = /[a-zA-Z]/.test(text);
+      const indo = /\b(dan|yang|di|ke|dari|untuk|dengan|adalah|ini|itu|atau|tidak|akan|sudah|juga|bisa|saya|kamu|kami)\b/i.test(text);
+      let lang = 'en'; let name = 'English'; let conf = 0.5;
+      if (arabic) { lang = 'ar'; name = 'Arabic'; conf = 0.8; }
+      else if (cjk) { lang = 'ja'; name = 'Japanese/CJK'; conf = 0.7; }
+      else if (indo) { lang = 'id'; name = 'Indonesian'; conf = 0.75; }
+      else if (latin) { lang = 'en'; name = 'English'; conf = 0.6; }
+      return json(res, 200, { ok: true, detectedLanguage: lang, languageName: name, confidence: conf });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/lyrics/transliterate') {
+      const b = await body(req); const text = b.text || '';
+      if (!text.trim()) return json(res, 400, { error: 'Tidak ada teks untuk ditransliterasi.' });
+      const transliterated = text.normalize('NFD').replace(/\p{M}+/gu, '').replace(/[؀-ۿ]+/g, m => `[${m}]`).replace(/[　-鿿]+/g, m => `[${m}]`);
+      return json(res, 200, { ok: true, transliterated, from: b.from || 'auto', style: b.style || 'romanized', message: 'Transliterasi dasar (strip diacritics). Untuk hasil lebih akurat, gunakan engine khusus.' });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/lyrics/load-preview') {
+      const b = await body(req); const config = deepMerge(activeConfig(state), b.config || {});
+      const audio = config.input?.audio;
+      const info = audio ? await ffprobeInfo(audio) : { duration: 0 };
+      const waveform = audio ? await waveformData(audio, Math.min(info.duration || 30, 60), 120) : { peaks: [] };
+      const beats = detectBeatsFromPeaks(waveform.peaks, waveform.seconds || 30);
+      return json(res, 200, { ok: true, duration: info.duration || 0, waveform, beats });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/branding/bumper/preview') {
+      const b = await body(req); const config = deepMerge(activeConfig(state), b.config || {});
+      const bumper = config.branding?.bumperVideo;
+      if (!bumper) return json(res, 400, { error: 'File bumper belum dipilih' });
+      const info = await ffprobeInfo(bumper);
+      if (!info.ok) return json(res, 400, { error: `File bumper tidak valid: ${info.error || bumper}` });
+      return json(res, 200, { ok: true, url: `/api/media/file?path=${encodeURIComponent(bumper)}`, duration: info.duration || 0, hasVideo: info.hasVideo, hasAudio: info.hasAudio, resolution: info.streams?.find(s => s.type === 'video') ? `${info.streams.find(s => s.type === 'video').width}x${info.streams.find(s => s.type === 'video').height}` : null });
+    }
+    // --- END STUB ENDPOINTS ---
+
     return json(res, 404, { error: 'not found' });
   } catch (error) {
     const status = Number(error?.status || 500);

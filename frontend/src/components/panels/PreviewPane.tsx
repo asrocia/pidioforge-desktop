@@ -7,6 +7,7 @@ import { cleanUiText, formatDuration, formatBytes } from '../../lib/format';
 import { queueStatusLabel } from '../../constants/modules';
 import type { ModuleKey, Job } from '../../types/app.types';
 import { RealTimePreview } from '../ui/RealTimePreview';
+import { showToast } from '../ui/Toast';
 
 const API = API_BASE_URL;
 
@@ -24,41 +25,76 @@ export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig 
   const [safePreset, setSafePreset] = useState(getDeep(config, 'preview.safeAreaPreset', 'youtube'));
   const [dragLive, setDragLive] = useState<LiveTarget | ''>('');
   const [selectedLive, setSelectedLive] = useState<LiveTarget | ''>('');
+  const [lockedLayers, setLockedLayers] = useState<Set<LiveTarget>>(new Set());
   const [activityView, setActivityView] = useState<'queue' | 'preview'>('queue');
   const [previewMode, setPreviewMode] = useState<'live' | 'rendered'>('live');
   const [showActivityLog] = useState(true);
   const [panelView, setPanelView] = useState<'preview' | 'activity' | 'status' | 'realtime'>('preview');
   const startNext = useCallback(async () => { 
-    await api('/api/jobs/start-next', { method: 'POST' }).catch(e => alert(e.message)); 
-    refresh(); 
+    try {
+      await api('/api/jobs/start-next', { method: 'POST' });
+      showToast('success', 'Job berikutnya dimulai!');
+      refresh();
+    } catch (e: any) {
+      showToast('error', `Gagal memulai job: ${e.message}`);
+    }
   }, [refresh]);
   
   const startQueue = useCallback(async () => { 
-    await api('/api/queue/start', { method: 'POST' }).catch(e => alert(e.message)); 
-    refresh(); 
-  }, [refresh]);
+    if (jobs.length === 0) {
+      showToast('warning', 'Tidak ada job dalam antrian!');
+      return;
+    }
+    try {
+      await api('/api/queue/start', { method: 'POST' });
+      showToast('success', 'Antrian dimulai!');
+      refresh();
+    } catch (e: any) {
+      showToast('error', `Gagal memulai antrian: ${e.message}`);
+    }
+  }, [refresh, jobs.length]);
   
   const reset = useCallback(async () => { 
     if (confirm('Reset semua antrian?')) { 
-      await api('/api/jobs/reset', { method: 'POST' }); 
-      refresh(); 
+      try {
+        await api('/api/jobs/reset', { method: 'POST' });
+        showToast('success', 'Antrian direset!');
+        refresh();
+      } catch (e: any) {
+        showToast('error', `Gagal reset antrian: ${e.message}`);
+      }
     } 
   }, [refresh]);
   
   const start = useCallback(async (id: string) => { 
-    await api(`/api/jobs/${id}/start`, { method: 'POST' }).catch(e => alert(e.message)); 
-    refresh(); 
+    try {
+      await api(`/api/jobs/${id}/start`, { method: 'POST' });
+      showToast('success', 'Job dimulai!');
+      refresh();
+    } catch (e: any) {
+      showToast('error', `Gagal memulai job: ${e.message}`);
+    }
   }, [refresh]);
   
   const cancel = useCallback(async (id: string) => { 
-    await api(`/api/jobs/${id}/cancel`, { method: 'POST' }).catch(e => alert(e.message)); 
-    refresh(); 
+    try {
+      await api(`/api/jobs/${id}/cancel`, { method: 'POST' });
+      showToast('success', 'Job dibatalkan!');
+      refresh();
+    } catch (e: any) {
+      showToast('error', `Gagal membatalkan job: ${e.message}`);
+    }
   }, [refresh]);
   
   const clearLogs = useCallback(async () => { 
-    await api('/api/logs/clear', { method: 'POST' }).catch(e => alert(e.message)); 
-    setPreviewLogs([]); 
-    refresh(); 
+    try {
+      await api('/api/logs/clear', { method: 'POST' });
+      setPreviewLogs([]);
+      showToast('success', 'Log dibersihkan!');
+      refresh();
+    } catch (e: any) {
+      showToast('error', `Gagal membersihkan log: ${e.message}`);
+    }
   }, [refresh]);
   async function revealOutput(target?: string) {
     if (!target) return;
@@ -71,29 +107,88 @@ export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig 
     catch (e: any) { setMessage(e.message); } finally { setBusy(false); }
   } */
   async function renderPreview() {
+    const hasVisual = Boolean(getDeep(config, 'input.visual'));
+    const hasAudio = Boolean(getDeep(config, 'input.audio'));
+    
+    if (!hasVisual) {
+      showToast('error', 'Pilih file visual terlebih dahulu!');
+      return;
+    }
+    if (!hasAudio) {
+      showToast('error', 'Pilih file audio terlebih dahulu!');
+      return;
+    }
+    
     setBusy(true); setMessage('Merender preview...'); setPreviewLogs([]);
     try {
       const patch = { preview: { quality, startAt, duration, safeAreaPreset: safePreset, width: getDeep(config, 'preview.width', 640), height: getDeep(config, 'preview.height', 360), fps: getDeep(config, 'preview.fps', 18), showSafeArea: getDeep(config, 'preview.showSafeArea', true), showGrid: getDeep(config, 'preview.showGrid', false) } };
       const data = await api('/api/preview/render', { method: 'POST', body: JSON.stringify({ config: patch, startAt, title: getDeep(config, 'input.title', 'Preview') }) });
-      setPreviewData(data); setPreviewMode('rendered'); setPreviewLogs(data.logs || []); setMessage(`Preview siap / ${data.resolution} / ${(data.size/1024/1024).toFixed(2)} MB / ${Math.round(data.elapsedMs/1000)}s`); refresh();
-    } catch (e: any) { setMessage(e.message); }
+      setPreviewData(data); setPreviewMode('rendered'); setPreviewLogs(data.logs || []); 
+      const msg = `Preview siap / ${data.resolution} / ${(data.size/1024/1024).toFixed(2)} MB / ${Math.round(data.elapsedMs/1000)}s`;
+      setMessage(msg);
+      showToast('success', `Preview berhasil dirender! ${data.resolution}, ${(data.size/1024/1024).toFixed(2)} MB`);
+      refresh();
+    } catch (e: any) { 
+      setMessage(e.message);
+      showToast('error', `Gagal render preview: ${e.message}`);
+    }
     finally { setBusy(false); }
   }
   async function snapshotPreview() {
+    const hasVisual = Boolean(getDeep(config, 'input.visual'));
+    const hasAudio = Boolean(getDeep(config, 'input.audio'));
+    
+    if (!hasVisual) {
+      showToast('error', 'Pilih file visual terlebih dahulu!');
+      return;
+    }
+    if (!hasAudio) {
+      showToast('error', 'Pilih file audio terlebih dahulu!');
+      return;
+    }
+    
     setBusy(true); setMessage('Mengambil snapshot...'); setPreviewLogs([]);
     try {
       const patch = { preview: { quality, startAt, duration: 1, safeAreaPreset: safePreset, width: getDeep(config, 'preview.width', 640), height: getDeep(config, 'preview.height', 360), fps: getDeep(config, 'preview.fps', 18) } };
       const data = await api('/api/preview/snapshot', { method: 'POST', body: JSON.stringify({ config: patch, startAt, title: getDeep(config, 'input.title', 'Preview') }) });
-      setPreviewData((p: any) => ({ ...(p || {}), snapshot: data, safeArea: data.safeArea })); setPreviewLogs(data.logs || []); setMessage(`Snapshot siap / ${(data.size/1024).toFixed(1)} KB / detik ${data.startAt}`); refresh();
-    } catch (e: any) { setMessage(e.message); }
+      setPreviewData((p: any) => ({ ...(p || {}), snapshot: data, safeArea: data.safeArea })); setPreviewLogs(data.logs || []); 
+      const msg = `Snapshot siap / ${(data.size/1024).toFixed(1)} KB / detik ${data.startAt}`;
+      setMessage(msg);
+      showToast('success', `Snapshot berhasil! ${(data.size/1024).toFixed(1)} KB`);
+      refresh();
+    } catch (e: any) { 
+      setMessage(e.message);
+      showToast('error', `Gagal snapshot: ${e.message}`);
+    }
     finally { setBusy(false); }
   }
   async function sendPreviewToQueue() {
+    const hasVisual = Boolean(getDeep(config, 'input.visual'));
+    const hasAudio = Boolean(getDeep(config, 'input.audio'));
+    
+    if (!hasVisual) {
+      showToast('error', 'Pilih file visual terlebih dahulu!');
+      return;
+    }
+    if (!hasAudio) {
+      showToast('error', 'Pilih file audio terlebih dahulu!');
+      return;
+    }
+    
     setBusy(true); setMessage('Mengirim preview ke antrian...');
     try {
       const data = await api('/api/preview/send-to-queue', { method: 'POST', body: JSON.stringify({ config, title: getDeep(config, 'input.title', 'Render dari Preview') }) });
-      setMessage(`Masuk antrian: ${data.job?.title || 'job'}${data.warnings?.length ? ' / peringatan: ' + data.warnings.length : ''}`); refresh();
-    } catch (e: any) { setMessage(e.message); }
+      const msg = `Masuk antrian: ${data.job?.title || 'job'}${data.warnings?.length ? ' / peringatan: ' + data.warnings.length : ''}`;
+      setMessage(msg);
+      showToast('success', `Job ditambahkan ke antrian: ${data.job?.title || 'job'}`);
+      if (data.warnings?.length > 0) {
+        showToast('warning', `Peringatan: ${data.warnings.join(', ')}`);
+      }
+      refresh();
+    } catch (e: any) { 
+      setMessage(e.message);
+      showToast('error', `Gagal mengirim ke antrian: ${e.message}`);
+    }
     finally { setBusy(false); }
   }
   // Memoized computed values
@@ -157,6 +252,7 @@ export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig 
     if (target === 'lowerThird') updateConfig('overlay.lowerThirdPosition', yPct < 34 ? 'Atas' : yPct > 66 ? 'Bawah' : 'Tengah');
   }
   function selectLive(e: React.MouseEvent<HTMLElement>, target: LiveTarget) {
+    if (lockedLayers.has(target)) return;
     setSelectedLive(target);
     setDragLive(target);
     e.currentTarget.focus();
@@ -168,7 +264,7 @@ export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig 
     return cornerPosition(Math.max(4, Math.min(96, x + dx)), Math.max(6, Math.min(94, y + dy)));
   }
   function handleLiveKey(e: React.KeyboardEvent<HTMLElement>, target: LiveTarget = selectedLive as LiveTarget) {
-    if (!target || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+    if (!target || lockedLayers.has(target) || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
     e.preventDefault();
     const step = e.shiftKey ? 5 : 1;
     const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
@@ -248,6 +344,7 @@ export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig 
     .concat(jobs.filter(j => j.status === 'done').slice(-3))
     .slice(0, 8);
   function centerLiveLayer(target: LiveTarget) {
+    if (lockedLayers.has(target)) return;
     setSelectedLive(target);
     if (target === 'nowPlaying') { updateConfig('spectrum.nowPlayingX', 50); updateConfig('spectrum.nowPlayingY', 14); updateConfig('spectrum.nowPlayingPosition', 'Atas'); }
     if (target === 'spectrum') { updateConfig('spectrum.previewY', 74); updateConfig('spectrum.y', 24); updateConfig('spectrum.position', 'Bawah'); }
@@ -259,6 +356,26 @@ export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig 
   }
   function toggleGrid() { updateConfig('preview.showGrid', !Boolean(getDeep(config, 'preview.showGrid', false))); }
   function toggleSafeArea() { updateConfig('preview.showSafeArea', !Boolean(getDeep(config, 'preview.showSafeArea', true))); }
+  function toggleLayerVisibility(id: LiveTarget) {
+    const pathMap: Record<LiveTarget, string> = {
+      nowPlaying: 'spectrum.nowPlaying',
+      spectrum: 'spectrum.enabled',
+      logo: 'branding.logoEnabled',
+      cta: 'branding.ctaEnabled',
+      watermark: 'branding.watermarkEnabled',
+      timestamp: 'overlay.timestamp',
+      lowerThird: 'overlay.lowerThirdEnabled',
+    };
+    const path = pathMap[id];
+    updateConfig(path, !Boolean(getDeep(config, path, false)));
+  }
+  function toggleLayerLock(id: LiveTarget) {
+    setLockedLayers(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
   return <aside className="flex flex-col h-full bg-[var(--primary-bg)] overflow-hidden">
     <div className="flex items-center justify-end px-5 py-4 border-b border-[var(--border-subtle)]">
       <div className="flex gap-2 border-b-0">
@@ -308,15 +425,16 @@ export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig 
         </button>
       </div>
     </div>
-    <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
     <div 
       className={cn(
-        "relative w-full rounded-[var(--radius-lg)] overflow-hidden border border-[var(--border-medium)] shadow-[var(--shadow-lg)]",
+        "relative w-full rounded-[var(--radius-lg)] overflow-hidden border-2 border-[var(--border-strong)] shadow-[inset_0_2px_4px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.5)]",
         livePreview || active === 'spectrum' || active === 'overlay' || active === 'branding' ? 'bg-black' : 'bg-[var(--tertiary-bg)]'
       )}
       style={{ 
         aspectRatio: '16/9',
-        maxHeight: '60vh',
+        maxHeight: '65vh',
+        width: '100%',
         transform: `scale(${Number(zoom)/100})`, 
         transformOrigin: 'top center',
         transition: 'transform 0.2s ease'
@@ -487,202 +605,195 @@ export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig 
         />
       )}
     </div>
-    <div className="grid grid-cols-3 gap-4">
+    {/* Action Buttons - Clean Row */}
+    <div className="flex gap-2">
       <button 
         onClick={renderPreview} 
         disabled={busy}
-        className="px-4 py-3 bg-[var(--accent-primary)] border border-[var(--accent-primary-hover)] text-white rounded-[var(--radius-md)] font-semibold hover:bg-[var(--accent-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+        className="flex-1 px-4 py-2.5 bg-[var(--accent-primary)] border-2 border-[var(--accent-primary-hover)] text-white rounded-lg text-[12px] font-bold hover:bg-[var(--accent-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_3px_8px_rgba(59,130,246,0.4)]"
       >
         🎬 Render Preview
       </button>
       <button 
         onClick={sendPreviewToQueue} 
         disabled={busy}
-        className="px-4 py-3 bg-[var(--accent-success)] border border-[var(--accent-success-hover)] text-white rounded-[var(--radius-md)] font-semibold hover:bg-[var(--accent-success-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+        className="flex-1 px-4 py-2.5 bg-[var(--accent-primary)] border-2 border-[var(--accent-primary-hover)] text-white rounded-lg text-[12px] font-bold hover:bg-[var(--accent-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_3px_8px_rgba(59,130,246,0.4)]"
       >
-        ➕ Kirim ke Antrian
+        ➕ Ke Antrian
       </button>
       <button 
         onClick={snapshotPreview} 
         disabled={busy}
-        className="px-4 py-3 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] font-semibold hover:bg-[var(--surface-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        className="px-4 py-2.5 bg-[var(--surface)] border-2 border-[var(--border-medium)] text-[var(--text-primary)] rounded-lg text-[12px] font-bold hover:bg-[var(--surface-hover)] hover:border-[var(--border-strong)] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_2px_4px_rgba(0,0,0,0.2)]"
       >
         📸 Snapshot
       </button>
     </div>
-    <div className="grid grid-cols-4 gap-4">
-      <label className="flex flex-col gap-2">
-        <span className="text-[12px] text-[var(--text-secondary)] font-medium">Mutu</span>
-        <select 
-          value={quality} 
-          onChange={e => setQuality(e.target.value)}
-          className="bg-[var(--surface)] border border-[var(--border-medium)] rounded-[var(--radius-md)] text-[var(--text-primary)] text-[13px] min-h-[40px] px-3 py-2 hover:border-[var(--accent-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all"
-        >
-          <option value="draft">Draf</option>
-          <option value="normal">Normal</option>
-          <option value="high">Tinggi</option>
-        </select>
-      </label>
-      <label className="flex flex-col gap-2">
-        <span className="text-[12px] text-[var(--text-secondary)] font-medium">Area Aman</span>
-        <select 
-          value={safePreset} 
-          onChange={e => setSafePreset(e.target.value)}
-          className="bg-[var(--surface)] border border-[var(--border-medium)] rounded-[var(--radius-md)] text-[var(--text-primary)] text-[13px] min-h-[40px] px-3 py-2 hover:border-[var(--accent-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all"
-        >
-          <option value="youtube">YouTube</option>
-          <option value="shorts">Shorts/Reels</option>
-          <option value="square">Square</option>
-        </select>
-      </label>
-      <label className="flex flex-col gap-2">
-        <span className="text-[12px] text-[var(--text-secondary)] font-medium">Zoom</span>
-        <select 
-          value={zoom} 
-          onChange={e => setZoom(e.target.value)}
-          className="bg-[var(--surface)] border border-[var(--border-medium)] rounded-[var(--radius-md)] text-[var(--text-primary)] text-[13px] min-h-[40px] px-3 py-2 hover:border-[var(--accent-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all"
-        >
-          <option>100</option>
-          <option>75</option>
-          <option>50</option>
-        </select>
-      </label>
+
+    {/* Preview Controls - Organized Grid */}
+    <div className="bg-[var(--tertiary-bg)] border-2 border-[var(--border-medium)] rounded-lg p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_2px_6px_rgba(0,0,0,0.25)]">
+      <h3 className="text-[11px] font-bold text-[var(--text-secondary)] mb-2 uppercase tracking-wide">⚙️ Kontrol Preview</h3>
+      <div className="flex flex-col gap-2">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[10px] text-[var(--text-muted)] font-semibold uppercase">Mutu</span>
+          <select
+            value={quality}
+            onChange={e => setQuality(e.target.value)}
+            className="bg-[var(--surface)] border-2 border-[var(--border-medium)] rounded-md text-[var(--text-primary)] text-[11px] h-8 px-2 hover:border-[var(--accent-primary)] focus:border-[var(--accent-primary)] transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)]"
+          >
+            <option value="draft">Draf</option>
+            <option value="normal">Normal</option>
+            <option value="high">Tinggi</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[10px] text-[var(--text-muted)] font-semibold uppercase">Area Aman</span>
+          <select
+            value={safePreset}
+            onChange={e => setSafePreset(e.target.value)}
+            className="bg-[var(--surface)] border-2 border-[var(--border-medium)] rounded-md text-[var(--text-primary)] text-[11px] h-8 px-2 hover:border-[var(--accent-primary)] focus:border-[var(--accent-primary)] transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)]"
+          >
+            <option value="youtube">YouTube</option>
+            <option value="shorts">Shorts</option>
+            <option value="square">Square</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[10px] text-[var(--text-muted)] font-semibold uppercase">Zoom</span>
+          <select
+            value={zoom}
+            onChange={e => setZoom(e.target.value)}
+            className="bg-[var(--surface)] border-2 border-[var(--border-medium)] rounded-md text-[var(--text-primary)] text-[11px] h-8 px-2 hover:border-[var(--accent-primary)] focus:border-[var(--accent-primary)] transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)]"
+          >
+            <option>100</option>
+            <option>75</option>
+            <option>50</option>
+          </select>
+        </label>
+      </div>
       {previewUrl && livePreview && (
         <button 
           onClick={() => setPreviewMode(previewMode === 'live' ? 'rendered' : 'live')}
-          className="mt-auto px-4 py-3 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all"
+          className="w-full mt-2 px-4 py-2 bg-[var(--surface)] border-2 border-[var(--border-medium)] text-[var(--text-primary)] rounded-md text-[11px] font-bold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_2px_4px_rgba(0,0,0,0.2)]"
         >
-          {previewMode === 'live' ? '🎬 Hasil Render' : '📁 Live File'}
+          {previewMode === 'live' ? '🎬 Tampilkan Hasil Render' : '📁 Tampilkan Live File'}
         </button>
       )}
     </div>
-    <div className="bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)] p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">🎨 Layer Editor</h3>
-        <span className="text-[12px] text-[var(--text-muted)]">
+    <div className="bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)] p-3 shadow-sm">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">🎨 Sources</h3>
+        <span className="text-[11px] text-[var(--text-muted)]">
           {selectedLive ? liveLayers.find(x => x.id === selectedLive)?.label : 'Pilih layer'}
         </span>
       </div>
-      <div className="grid grid-cols-4 gap-2 mb-4">
-        {liveLayers.map(layer => (
-          <button 
-            key={layer.id} 
-            type="button" 
-            disabled={!layer.enabled} 
-            className={cn(
-              "px-3 py-2 rounded-[var(--radius-sm)] text-[12px] font-semibold border transition-all",
-              selectedLive === layer.id 
-                ? 'bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white' 
-                : layer.primary
-                  ? 'bg-[var(--accent-success)]/10 border-[var(--accent-success)]/30 text-[var(--accent-success)] hover:bg-[var(--accent-success)]/20'
-                  : 'bg-[var(--surface)] border-[var(--border-medium)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)]',
-              !layer.enabled && 'opacity-50 cursor-not-allowed'
-            )}
-            onClick={() => setSelectedLive(layer.id)} 
-            onDoubleClick={() => centerLiveLayer(layer.id)}
-          >
-            {layer.label}
-          </button>
-        ))}
+      <div className="flex flex-col gap-1 mb-2">
+        {liveLayers.map(layer => {
+          const isLocked = lockedLayers.has(layer.id);
+          return (
+            <div
+              key={layer.id}
+              className={cn(
+                "flex items-center gap-2 px-2 py-1.5 rounded-[var(--radius-sm)] border transition-all",
+                selectedLive === layer.id
+                  ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)]'
+                  : 'bg-[var(--surface)] border-[var(--border-medium)] hover:bg-[var(--surface-hover)]'
+              )}
+            >
+              <button
+                type="button"
+                onClick={() => toggleLayerVisibility(layer.id)}
+                title={layer.enabled ? 'Sembunyikan layer' : 'Tampilkan layer'}
+                className={cn(
+                  "shrink-0 w-6 h-6 flex items-center justify-center rounded-[var(--radius-sm)] text-[13px] transition-all",
+                  layer.enabled ? 'text-[var(--accent-success)] hover:bg-[var(--accent-success)]/10' : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)]'
+                )}
+              >
+                {layer.enabled ? '👁' : '🚫'}
+              </button>
+              <button
+                type="button"
+                disabled={!layer.enabled || isLocked}
+                onClick={() => setSelectedLive(layer.id)}
+                onDoubleClick={() => centerLiveLayer(layer.id)}
+                className={cn(
+                  "flex-1 text-left text-[11px] font-semibold truncate",
+                  !layer.enabled && 'opacity-50',
+                  isLocked ? 'cursor-not-allowed text-[var(--text-muted)]' : 'text-[var(--text-primary)] cursor-pointer',
+                  layer.primary && layer.enabled && selectedLive !== layer.id && 'text-[var(--accent-success)]'
+                )}
+              >
+                {layer.label}
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleLayerLock(layer.id)}
+                title={isLocked ? 'Buka kunci layer' : 'Kunci layer'}
+                className={cn(
+                  "shrink-0 w-6 h-6 flex items-center justify-center rounded-[var(--radius-sm)] text-[12px] transition-all",
+                  isLocked ? 'text-[var(--accent-warning)] hover:bg-[var(--accent-warning)]/10' : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)]'
+                )}
+              >
+                {isLocked ? '🔒' : '🔓'}
+              </button>
+            </div>
+          );
+        })}
       </div>
-      <div className="grid grid-cols-3 gap-2">
-        <button 
-          type="button" 
-          onClick={() => selectedLive && centerLiveLayer(selectedLive)} 
+      <div className="grid grid-cols-3 gap-1.5">
+        <button
+          type="button"
+          onClick={() => selectedLive && centerLiveLayer(selectedLive)}
           disabled={!selectedLive}
-          className="px-4 py-2.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          className="px-2 py-1.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-sm)] text-[11px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
-          🔄 Reset Posisi
+          🔄 Reset
         </button>
-        <button 
-          type="button" 
+        <button
+          type="button"
           onClick={toggleSafeArea}
-          className="px-4 py-2.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all"
+          className="px-2 py-1.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-sm)] text-[11px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all"
         >
-          {getDeep(config, 'preview.showSafeArea', true) ? '✅ Safe Aktif' : '⬜ Safe Mati'}
+          {getDeep(config, 'preview.showSafeArea', true) ? '✓ Safe' : '○ Safe'}
         </button>
-        <button 
-          type="button" 
+        <button
+          type="button"
           onClick={toggleGrid}
-          className="px-4 py-2.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all"
+          className="px-2 py-1.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-sm)] text-[11px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all"
         >
-          {getDeep(config, 'preview.showGrid', false) ? '✅ Grid Aktif' : '⬜ Grid Mati'}
+          {getDeep(config, 'preview.showGrid', false) ? '✓ Grid' : '○ Grid'}
         </button>
       </div>
     </div>
-    <div className="grid grid-cols-[1fr_60px_1fr_60px] gap-3 items-center bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)] p-4">
-      <label className="flex flex-col gap-2">
-        <span className="text-[11px] text-[var(--text-muted)]">Mulai detik</span>
+    <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center bg-[var(--tertiary-bg)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)] p-2">
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] text-[var(--text-muted)] whitespace-nowrap">Mulai:</span>
         <input 
-          type="range" 
-          min="0" 
-          max="180" 
+          type="number" 
           value={startAt} 
-          onChange={e => setStartAt(Number(e.target.value))}
-          className="accent-[var(--accent-success)] w-full h-2 rounded-full cursor-pointer"
+          onChange={e => setStartAt(Number(e.target.value || 0))}
+          className="bg-[var(--surface)] border border-[var(--border-medium)] rounded-[var(--radius-sm)] text-[var(--text-primary)] text-[12px] h-7 w-16 px-2 text-center"
         />
-      </label>
-      <input 
-        type="number" 
-        value={startAt} 
-        onChange={e => setStartAt(Number(e.target.value || 0))}
-        className="bg-[var(--surface)] border border-[var(--border-medium)] rounded-[var(--radius-sm)] text-[var(--text-primary)] text-[13px] min-h-[38px] px-2 py-2 text-center"
-      />
-      <label className="flex flex-col gap-2">
-        <span className="text-[11px] text-[var(--text-muted)]">Durasi</span>
+        <span className="text-[11px] text-[var(--text-muted)]">s</span>
+      </div>
+      <div className="flex gap-1">
+        <button onClick={() => setStartAt(0)} className="px-2 py-1 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded text-[11px] hover:bg-[var(--surface-hover)] transition-all">0s</button>
+        <button onClick={() => setStartAt(15)} className="px-2 py-1 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded text-[11px] hover:bg-[var(--surface-hover)] transition-all">15s</button>
+        <button onClick={() => setStartAt(30)} className="px-2 py-1 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded text-[11px] hover:bg-[var(--surface-hover)] transition-all">30s</button>
+        <button onClick={() => setStartAt(60)} className="px-2 py-1 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded text-[11px] hover:bg-[var(--surface-hover)] transition-all">60s</button>
+        <button onClick={() => setStartAt(Math.max(0, startAt - 5))} className="px-2 py-1 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded text-[11px] hover:bg-[var(--surface-hover)] transition-all">-5s</button>
+        <button onClick={() => setStartAt(startAt + 5)} className="px-2 py-1 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded text-[11px] hover:bg-[var(--surface-hover)] transition-all">+5s</button>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] text-[var(--text-muted)] whitespace-nowrap">Durasi:</span>
         <input 
-          type="range" 
-          min="1" 
-          max="12" 
+          type="number" 
           value={duration} 
-          onChange={e => setDuration(Number(e.target.value))}
-          className="accent-[var(--accent-success)] w-full h-2 rounded-full cursor-pointer"
+          onChange={e => setDuration(Number(e.target.value || 1))}
+          className="bg-[var(--surface)] border border-[var(--border-medium)] rounded-[var(--radius-sm)] text-[var(--text-primary)] text-[12px] h-7 w-16 px-2 text-center"
         />
-      </label>
-      <input 
-        type="number" 
-        value={duration} 
-        onChange={e => setDuration(Number(e.target.value || 1))}
-        className="bg-[var(--surface)] border border-[var(--border-medium)] rounded-[var(--radius-sm)] text-[var(--text-primary)] text-[13px] min-h-[38px] px-2 py-2 text-center"
-      />
-    </div>
-    <div className="grid grid-cols-6 gap-2">
-      <button 
-        onClick={() => setStartAt(0)}
-        className="px-4 py-2.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all"
-      >
-        🎬 Intro
-      </button>
-      <button 
-        onClick={() => setStartAt(15)}
-        className="px-4 py-2.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all"
-      >
-        15s
-      </button>
-      <button 
-        onClick={() => setStartAt(30)}
-        className="px-4 py-2.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all"
-      >
-        30s
-      </button>
-      <button 
-        onClick={() => setStartAt(60)}
-        className="px-4 py-2.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all"
-      >
-        60s
-      </button>
-      <button 
-        onClick={() => setStartAt(Math.max(0, startAt - 5))}
-        className="px-4 py-2.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all"
-      >
-        ⏪ -5s
-      </button>
-      <button 
-        onClick={() => setStartAt(startAt + 5)}
-        className="px-4 py-2.5 bg-[var(--surface)] border border-[var(--border-medium)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] transition-all"
-      >
-        ⏩ +5s
-      </button>
+        <span className="text-[11px] text-[var(--text-muted)]">s</span>
+      </div>
     </div>
     {message && (
       <div className={cn(
@@ -946,7 +1057,7 @@ export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig 
                 <button 
                   onClick={() => start(j.id)} 
                   disabled={j.status === 'rendering' || j.status === 'done'}
-                  className="px-4 py-2 bg-[var(--accent-success)] border border-[var(--accent-success-hover)] text-white rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--accent-success-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                  className="px-4 py-2 bg-[var(--accent-primary)] border border-[var(--accent-primary-hover)] text-white rounded-[var(--radius-md)] text-[12px] font-semibold hover:bg-[var(--accent-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
                 >
                   ▶️ Mulai
                 </button>
@@ -978,13 +1089,13 @@ export function PreviewPane({ active, jobs, logs, refresh, config, updateConfig 
         <div className="grid grid-cols-2 gap-3 mt-4">
           <button 
             onClick={startQueue}
-            className="px-4 py-3 bg-[var(--accent-success)] border border-[var(--accent-success-hover)] text-white rounded-[var(--radius-sm)] font-semibold hover:bg-[var(--accent-success-hover)] transition-all"
+            className="px-4 py-3 bg-[var(--accent-primary)] border border-[var(--accent-primary-hover)] text-white rounded-[var(--radius-sm)] font-semibold hover:bg-[var(--accent-primary-hover)] transition-all"
           >
             Mulai Antrian
           </button>
           <button 
             onClick={startNext}
-            className="px-4 py-3 bg-[var(--accent-success)] border border-[var(--accent-success-hover)] text-white rounded-[var(--radius-sm)] font-semibold hover:bg-[var(--accent-success-hover)] transition-all"
+            className="px-4 py-3 bg-[var(--accent-primary)] border border-[var(--accent-primary-hover)] text-white rounded-[var(--radius-sm)] font-semibold hover:bg-[var(--accent-primary-hover)] transition-all"
           >
             Mulai Berikutnya
           </button>
