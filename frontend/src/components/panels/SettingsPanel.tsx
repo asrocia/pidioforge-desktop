@@ -1,5 +1,6 @@
 import { useMemo, useState, Suspense } from 'react';
 import { getDeep } from '../../lib/config-path';
+import { showPrompt } from '../ui/Dialogs';
 import { flattenModulePatch } from '../../utils/media';
 import { moduleDisplay } from '../../constants/modules';
 import { PanelErrorBoundary } from '../ErrorBoundary';
@@ -37,8 +38,8 @@ export function ModulePresetControl({
     // presetVersion forces recompute after localStorage write
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey, presetVersion]);
-  function saveModulePreset() {
-    const name = prompt('Nama preset modul?');
+  async function saveModulePreset() {
+    const name = await showPrompt('Nama preset modul?');
     if (!name) return;
     const data = structuredClone(getDeep(config, active, {}));
     const next = [{ name, data }, ...presets.filter(p => p.name !== name)].slice(0, 12);
@@ -94,7 +95,7 @@ export function SettingsPanel({
     return (
       <main className="flex flex-col h-full bg-[var(--secondary-bg)] overflow-hidden">
         <div className="flex-1 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
+          <div className="flex flex-col items-center gap-3" role="status" aria-label="Loading configuration">
             <div className="w-6 h-6 border-2 border-[var(--accent-primary)] border-t-transparent rounded-full animate-spin" />
             <span className="text-[12px] text-[var(--text-muted)]">Memuat config...</span>
           </div>

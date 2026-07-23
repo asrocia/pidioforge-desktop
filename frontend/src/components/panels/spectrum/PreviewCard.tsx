@@ -153,6 +153,8 @@ export function PreviewCard({ config, updateConfig, engine }: PreviewCardProps) 
               ? 'bg-[var(--accent-success)]/10 text-[var(--accent-success)]'
               : 'bg-[var(--accent-danger)]/10 text-[var(--accent-danger)]',
           )}
+          role="status"
+          aria-live="polite"
         >
           {cleanUiText(message)}
         </div>

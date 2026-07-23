@@ -3,6 +3,7 @@ import { api } from '../../lib/api';
 import { cn } from '../../utils/cn';
 import type { ModuleKey, PidioConfig } from '../../types/app.types';
 import { errorMessage } from '../../lib/format';
+import { showConfirm } from '../ui/Dialogs';
 
 type Template = {
   id: string;
@@ -80,7 +81,7 @@ export function TemplatesPanel({
   }
 
   async function deleteTemplate(id: string) {
-    if (!confirm('Hapus template ini?')) return;
+    if (!(await showConfirm('Hapus template ini?'))) return;
     setBusy(true);
     try {
       await api(`/api/templates/${id}`, { method: 'DELETE' });

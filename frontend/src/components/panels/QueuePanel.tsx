@@ -7,6 +7,7 @@ import { getDeep } from '../../lib/config-path';
 import { cleanUiText, errorMessage } from '../../lib/format';
 import type { Job, PidioConfig } from '../../types/app.types';
 import { showToast } from '../ui/Toast';
+import { showConfirm } from '../ui/Dialogs';
 import {
   ActionButtonGroup,
   Card,
@@ -263,7 +264,7 @@ export function QueuePanel({ config }: { config: PidioConfig }) {
     }
   }
   async function removeJob(id: string) {
-    if (confirm('Hapus job ini dari antrian?')) {
+    if (await showConfirm('Hapus job ini dari antrian?')) {
       try {
         await queueAction(`/api/jobs/${id}/remove`);
         showToast('success', 'Job dihapus!');
@@ -442,15 +443,19 @@ export function QueuePanel({ config }: { config: PidioConfig }) {
               icon: '♻️',
               variant: 'danger',
               disabled: busy,
-              onClick: () => {
-                if (confirm('Reset semua antrian?')) queueAction('/api/jobs/reset');
+              onClick: async () => {
+                if (await showConfirm('Reset semua antrian?')) queueAction('/api/jobs/reset');
               },
             },
             { id: 'refresh', label: 'Muat Ulang', icon: '🔄', variant: 'secondary', onClick: refreshQueue },
           ]}
         />
         {message && (
-          <div className="px-3 py-2 rounded-[var(--radius-md)] text-[11px] font-medium bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20">
+          <div
+            className="px-3 py-2 rounded-[var(--radius-md)] text-[11px] font-medium bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20"
+            role="status"
+            aria-live="polite"
+          >
             {cleanUiText(message)}
           </div>
         )}

@@ -138,7 +138,12 @@ export function PlaylistStemsCard({ config, updateConfig, stemManagement, stemDr
                         : 'bg-[var(--tertiary-bg)] border-[var(--border-subtle)] hover:bg-[var(--tertiary-bg)]/80',
                   )}
                 >
-                  <span className="text-[var(--text-muted)] select-none cursor-grab text-[10px]">⠿</span>
+                  <span
+                    className="text-[var(--text-muted)] select-none cursor-grab text-[10px]"
+                    aria-label="Drag to reorder"
+                  >
+                    ⠿
+                  </span>
                   <div className="flex-1 min-w-0">
                     <div className="text-[10px] font-semibold text-[var(--text-primary)] truncate">
                       {stem.name || `Track ${i + 1}`}
@@ -176,6 +181,7 @@ export function PlaylistStemsCard({ config, updateConfig, stemManagement, stemDr
                       max="150"
                       value={stem.volume || 100}
                       onChange={e => updateStemVolume(i, Number(e.target.value))}
+                      aria-label={`Volume ${stem.name || `Track ${i + 1}`}`}
                       className="flex-1 h-1 bg-[var(--secondary-bg)] rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--accent-primary)] [&::-webkit-slider-thumb]:cursor-pointer"
                     />
                     <span className="text-[9px] text-[var(--text-muted)] w-8 text-right">{stem.volume || 100}</span>

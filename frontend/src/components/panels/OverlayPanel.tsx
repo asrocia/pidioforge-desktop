@@ -161,6 +161,8 @@ export function OverlayPanel({
                 ? 'bg-[var(--accent-success)]/10 text-[var(--accent-success)] border-[var(--accent-success)]/20'
                 : 'bg-[var(--accent-warning)]/10 text-[var(--accent-warning)] border-[var(--accent-warning)]/20',
             )}
+            role="status"
+            aria-live="polite"
           >
             {cleanUiText(message)}
           </div>
