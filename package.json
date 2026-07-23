@@ -20,6 +20,10 @@
     "smoke:render": "node tools/smoke-render.mjs",
     "smoke:loop": "node tools/smoke-loop.mjs",
     "smoke:api": "node tools/smoke-api.mjs",
+    "smoke:queue": "node tools/smoke-queue.mjs",
+    "smoke:gallery": "node tools/smoke-gallery.mjs",
+    "smoke:layers": "node tools/smoke-layers.mjs",
+    "smoke:packaged": "node tools/smoke-packaged.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"frontend/src/**/*.{ts,tsx}\" \"backend/**/*.mjs\" \"tools/**/*.mjs\" \"electron/**/*.{mjs,cjs}\"",
@@ -74,7 +78,11 @@
       "output": "release"
     },
     "files": [
-      "electron/**/*",
+      "electron/main.mjs",
+      "electron/preload.cjs",
+      "electron/preload.mjs",
+      "electron/updater.mjs",
+      "electron/icons/**/*",
       "frontend/dist/**/*",
       "package.json"
     ],

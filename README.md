@@ -123,8 +123,12 @@ Current release validation:
 
 - `npm run electron:build` — passed
 - `npm run typecheck` — passed
-- Frontend tests — 31 passed
+- Frontend tests (Vitest) — 189 passed across 27 test files
 - Electron native dependency rebuild — passed
+- `npm run smoke:api` — API health + diagnostics + preview cleanup verified
+- `npm run smoke:render` — Full render pipeline verified (portable, generates sample media)
+- `npm run smoke:loop` — Loop flow verified
+- `npm run smoke:queue` — Queue CRUD, duplicate, send-to-queue, start/pause verified
 
 ## Technology
 

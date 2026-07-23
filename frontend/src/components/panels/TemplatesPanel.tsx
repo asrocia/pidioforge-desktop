@@ -1,18 +1,24 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { cn } from '../../utils/cn';
-import type { ModuleKey } from '../../types/app.types';
+import type { ModuleKey, PidioConfig } from '../../types/app.types';
+import { errorMessage } from '../../lib/format';
 
 type Template = {
   id: string;
   name: string;
   description: string;
   modules: ModuleKey[];
-  config: any;
+  config: PidioConfig;
   createdAt: string;
 };
 
-export function TemplatesPanel({ config }: { config: any; updateConfig: (path: string, value: any) => void }) {
+export function TemplatesPanel({
+  config,
+}: {
+  config: PidioConfig;
+  updateConfig: (path: string, value: unknown) => void;
+}) {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
@@ -27,8 +33,8 @@ export function TemplatesPanel({ config }: { config: any; updateConfig: (path: s
     try {
       const data = await api('/api/templates');
       setTemplates(data.templates || []);
-    } catch (e: any) {
-      setMessage(e.message);
+    } catch (e: unknown) {
+      setMessage(errorMessage(e));
     }
   }
 
@@ -52,8 +58,8 @@ export function TemplatesPanel({ config }: { config: any; updateConfig: (path: s
       setShowCreate(false);
       setNewTemplate({ name: '', description: '', modules: [] });
       await loadTemplates();
-    } catch (e: any) {
-      setMessage(e.message);
+    } catch (e: unknown) {
+      setMessage(errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -66,8 +72,8 @@ export function TemplatesPanel({ config }: { config: any; updateConfig: (path: s
       setMessage('Template berhasil diterapkan');
       // Refresh config from parent
       window.location.reload();
-    } catch (e: any) {
-      setMessage(e.message);
+    } catch (e: unknown) {
+      setMessage(errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -80,8 +86,8 @@ export function TemplatesPanel({ config }: { config: any; updateConfig: (path: s
       await api(`/api/templates/${id}`, { method: 'DELETE' });
       setMessage('Template berhasil dihapus');
       await loadTemplates();
-    } catch (e: any) {
-      setMessage(e.message);
+    } catch (e: unknown) {
+      setMessage(errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -116,12 +122,14 @@ export function TemplatesPanel({ config }: { config: any; updateConfig: (path: s
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
         {/* Message */}
         {message && (
-          <div className={cn(
-            'px-4 py-3 rounded-[var(--radius-md)] text-[13px]',
-            message.includes('berhasil') || message.includes('OK')
-              ? 'bg-[rgba(16,185,129,0.1)] border border-[rgba(16,185,129,0.3)] text-[var(--accent-success)]'
-              : 'bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)] text-[var(--accent-danger)]'
-          )}>
+          <div
+            className={cn(
+              'px-4 py-3 rounded-[var(--radius-md)] text-[13px]',
+              message.includes('berhasil') || message.includes('OK')
+                ? 'bg-[rgba(16,185,129,0.1)] border border-[rgba(16,185,129,0.3)] text-[var(--accent-success)]'
+                : 'bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)] text-[var(--accent-danger)]',
+            )}
+          >
             {message}
           </div>
         )}
@@ -130,7 +138,7 @@ export function TemplatesPanel({ config }: { config: any; updateConfig: (path: s
         {showCreate && (
           <div className="bg-[var(--secondary-bg)] border border-[var(--border-medium)] rounded-[var(--radius-lg)] p-5 space-y-4">
             <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">Buat Template Baru</h3>
-            
+
             <div className="space-y-3">
               <div>
                 <label className="block text-[13px] text-[var(--text-secondary)] mb-2">Nama Template</label>
@@ -238,12 +246,13 @@ export function TemplatesPanel({ config }: { config: any; updateConfig: (path: s
                   </div>
                 </div>
                 <div className="text-[11px] text-[var(--text-muted)]">
-                  Dibuat: {new Date(template.createdAt).toLocaleDateString('id-ID', { 
-                    year: 'numeric', 
-                    month: 'short', 
+                  Dibuat:{' '}
+                  {new Date(template.createdAt).toLocaleDateString('id-ID', {
+                    year: 'numeric',
+                    month: 'short',
                     day: 'numeric',
                     hour: '2-digit',
-                    minute: '2-digit'
+                    minute: '2-digit',
                   })}
                 </div>
               </div>
