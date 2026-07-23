@@ -117,18 +117,32 @@ Common errors:
 | `/api/loop/start` | POST | Start loop job |
 | `/api/lyrics/auto-align` | POST | Align lyrics |
 
+## Documentation
+
+Extended documentation lives in [`docs/`](./docs/README.md):
+- Testing guides and strategy
+- Performance optimization
+- Preview/realtime implementation
+- UI redesign plan
+- Audit reports
+- Feature log
+
 ## Validation
 
 Current release validation:
 
 - `npm run electron:build` — passed
 - `npm run typecheck` — passed
-- Frontend tests (Vitest) — 189 passed across 27 test files
+- `npm run lint` — 0 errors, 0 warnings
+- Frontend tests (Vitest) — 192 passed across 28 test files
 - Electron native dependency rebuild — passed
 - `npm run smoke:api` — API health + diagnostics + preview cleanup verified
 - `npm run smoke:render` — Full render pipeline verified (portable, generates sample media)
 - `npm run smoke:loop` — Loop flow verified
 - `npm run smoke:queue` — Queue CRUD, duplicate, send-to-queue, start/pause verified
+- `npm run smoke:project` — Project CRUD, export/import, presets, templates verified
+- `npm run smoke:pipeline` — Config → validate → render → history → clear-done verified
+- `npm run smoke:presets` — All preset lists, save/apply/delete, validate verified
 
 ## Technology
 
