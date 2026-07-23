@@ -2,14 +2,9 @@ import React from 'react';
 import { cn } from '../../lib/utils';
 import { Button } from './button';
 
-/** Panel scroll container — col 2 settings area */
-export function PanelWrap({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={cn('flex flex-col gap-0 overflow-y-auto overflow-x-hidden h-full scroll-smooth', className)}>
-      {children}
-    </div>
-  );
-}
+/** Panel scroll container — DEPRECATED: scroll is owned by SettingsPanel.tsx.
+ *  Do NOT use this inside SettingsPanel or it will create nested scrollbars. */
+// export function PanelWrap — removed to prevent accidental double-scroll
 
 /** Section header row at top of a panel */
 export function PanelHeader({ title, children }: { title: string; children?: React.ReactNode }) {
