@@ -86,7 +86,11 @@ export function ToastContainer() {
 
       {/* Toast Messages */}
       {enabled && (
-        <div className="fixed top-16 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed top-16 right-4 z-50 flex flex-col gap-2 pointer-events-none"
+        >
           {toasts.map(toast => (
             <div
               key={toast.id}
@@ -123,7 +127,11 @@ export function ToastContainer() {
 }
 
 // Global error handler
+let globalErrorHandlerInstalled = false;
 export function setupGlobalErrorHandler() {
+  if (globalErrorHandlerInstalled) return;
+  globalErrorHandlerInstalled = true;
+
   window.addEventListener('unhandledrejection', event => {
     console.error('Unhandled promise rejection:', event.reason);
     showToast('error', `Error: ${event.reason?.message || event.reason || 'Unknown error'}`);

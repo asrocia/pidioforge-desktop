@@ -18,16 +18,25 @@ export function debounce<T extends (...args: any[]) => any>(func: T, wait: numbe
   };
 }
 
-// Throttle function for frequent events
+// Throttle function for frequent events, capturing trailing edge
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function throttle<T extends (...args: any[]) => any>(func: T, limit: number): (...args: Parameters<T>) => void {
   let inThrottle: boolean;
+  let lastArgs: Parameters<T> | null = null;
 
   return function executedFunction(...args: Parameters<T>) {
     if (!inThrottle) {
       func(...args);
       inThrottle = true;
-      setTimeout(() => (inThrottle = false), limit);
+      setTimeout(() => {
+        inThrottle = false;
+        if (lastArgs) {
+          executedFunction(...lastArgs);
+          lastArgs = null;
+        }
+      }, limit);
+    } else {
+      lastArgs = args;
     }
   };
 }
@@ -137,6 +146,8 @@ export function shallowEqual(obj1: unknown, obj2: unknown): boolean {
 
 // Preload critical resources
 export function preloadResource(url: string, type: 'image' | 'video' | 'audio' | 'script' | 'style') {
+  if (document.querySelector(`link[rel="preload"][href="${url}"]`)) return;
+
   const link = document.createElement('link');
   link.rel = 'preload';
   link.href = url;

@@ -24,19 +24,26 @@ describe('performance utils', () => {
     expect(fn).toHaveBeenCalledWith('b');
   });
 
-  it('throttle runs immediately and limits repeated calls', () => {
+  it('throttle runs immediately and queues latest trailing call', () => {
     const fn = vi.fn();
     const throttled = throttle(fn, 100);
 
     throttled('a');
-    throttled('b');
+    throttled('b'); // queued
+    throttled('c'); // overwrites queued
     expect(fn).toHaveBeenCalledTimes(1);
     expect(fn).toHaveBeenCalledWith('a');
 
     vi.advanceTimersByTime(100);
-    throttled('c');
+    // Trailing call fires with latest args
     expect(fn).toHaveBeenCalledTimes(2);
     expect(fn).toHaveBeenLastCalledWith('c');
+
+    // After trailing fires, new throttle period starts — wait for it
+    vi.advanceTimersByTime(100);
+    throttled('d');
+    expect(fn).toHaveBeenCalledTimes(3);
+    expect(fn).toHaveBeenLastCalledWith('d');
   });
 
   it('rafThrottle collapses repeated calls into one animation frame', () => {
