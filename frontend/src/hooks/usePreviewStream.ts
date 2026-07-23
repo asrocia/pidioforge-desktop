@@ -1,5 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { api } from '../lib/api';
+import type { PidioConfig } from '../types/app.types';
+import { errorMessage } from '../lib/format';
 
 export interface PreviewStreamOptions {
   startAt?: number;
@@ -41,10 +43,7 @@ export function usePreviewStream() {
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const generatePreview = useCallback(async (
-    config: any,
-    options: PreviewStreamOptions = {}
-  ) => {
+  const generatePreview = useCallback(async (config: PidioConfig, options: PreviewStreamOptions = {}) => {
     setIsGenerating(true);
     setProgress(null);
     setResult(null);
@@ -54,26 +53,21 @@ export function usePreviewStream() {
     abortControllerRef.current = new AbortController();
 
     try {
-      const endpoint = options.mode === 'full' 
-        ? '/api/preview/full' 
-        : '/api/preview/live';
+      const endpoint = options.mode === 'full' ? '/api/preview/full' : '/api/preview/live';
 
-      const response = await api<PreviewStreamResult>(
-        endpoint,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            config,
-            startAt: options.startAt ?? 0,
-            duration: options.duration ?? 10,
-            quality: options.quality ?? 'draft',
-            fps: options.fps ?? 15,
-            width: options.width ?? 640,
-            height: options.height ?? 360,
-          }),
-          signal: abortControllerRef.current.signal,
-        }
-      );
+      const response = await api<PreviewStreamResult>(endpoint, {
+        method: 'POST',
+        body: JSON.stringify({
+          config,
+          startAt: options.startAt ?? 0,
+          duration: options.duration ?? 10,
+          quality: options.quality ?? 'draft',
+          fps: options.fps ?? 15,
+          width: options.width ?? 640,
+          height: options.height ?? 360,
+        }),
+        signal: abortControllerRef.current.signal,
+      });
 
       if (response.progress) {
         setProgress(response.progress);
@@ -81,11 +75,12 @@ export function usePreviewStream() {
 
       setResult(response);
       return response;
-    } catch (err: any) {
-      if (err.name === 'AbortError') {
+    } catch (err: unknown) {
+      const message = errorMessage(err);
+      if (err instanceof Error && err.name === 'AbortError') {
         setError('Preview generation cancelled');
       } else {
-        setError(err.message || 'Failed to generate preview');
+        setError(message || 'Failed to generate preview');
       }
       throw err;
     } finally {
@@ -102,11 +97,11 @@ export function usePreviewStream() {
 
   const cleanupPreviews = useCallback(async (maxAge?: number) => {
     try {
-      await api('/api/preview/cleanup', { 
+      await api('/api/preview/cleanup', {
         method: 'POST',
-        body: JSON.stringify({ maxAge })
+        body: JSON.stringify({ maxAge }),
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to cleanup previews:', err);
     }
   }, []);
@@ -131,18 +126,14 @@ export function usePreviewStream() {
   };
 }
 
-export function usePreviewPolling(
-  previewUrl: string | null,
-  interval: number = 2000
-) {
+export function usePreviewPolling(previewUrl: string | null, interval: number = 2000) {
   const [isLoading, setIsLoading] = useState(false);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<number | null>(null);
+  const videoUrl = previewUrl;
 
   useEffect(() => {
     if (!previewUrl) {
-      setVideoUrl(null);
       return;
     }
 
@@ -151,7 +142,6 @@ export function usePreviewPolling(
         setIsLoading(true);
         const response = await fetch(previewUrl);
         if (response.ok) {
-          setVideoUrl(previewUrl);
           setError(null);
           // Stop polling once we have the video
           if (intervalRef.current) {
@@ -159,8 +149,8 @@ export function usePreviewPolling(
             intervalRef.current = null;
           }
         }
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        setError(errorMessage(err));
       } finally {
         setIsLoading(false);
       }

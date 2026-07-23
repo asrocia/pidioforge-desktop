@@ -39,6 +39,19 @@ export const moduleUi: Record<ModuleKey, { icon: ModuleKey; tone: string }> = {
   help: { icon: 'help', tone: 'blue' },
 };
 
+export const moduleShortCode: Record<ModuleKey, string> = {
+  target: 'SRC',
+  branding: 'BRD',
+  audio: 'AUD',
+  lyrics: 'LYR',
+  spectrum: 'SPC',
+  overlay: 'OVR',
+  queue: 'QUE',
+  loop: 'LOP',
+  templates: 'TPL',
+  help: 'HLP',
+};
+
 export type QueueStatus = 'all' | 'standby' | 'rendering' | 'done' | 'failed' | 'cancelled';
 
 export const queueStatusLabelMap: Record<Exclude<QueueStatus, 'all'>, string> = {

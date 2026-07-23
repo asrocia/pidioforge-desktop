@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { useState, useRef, useCallback } from 'react';
 
 interface VirtualListProps<T> {
@@ -19,7 +20,7 @@ export function VirtualList<T>({
   containerHeight,
   renderItem,
   overscan = 3,
-  className = ''
+  className = '',
 }: VirtualListProps<T>) {
   const [scrollTop, setScrollTop] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -31,10 +32,7 @@ export function VirtualList<T>({
   // Calculate visible range
   const totalHeight = items.length * itemHeight;
   const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
-  const endIndex = Math.min(
-    items.length - 1,
-    Math.ceil((scrollTop + containerHeight) / itemHeight) + overscan
-  );
+  const endIndex = Math.min(items.length - 1, Math.ceil((scrollTop + containerHeight) / itemHeight) + overscan);
 
   const visibleItems = items.slice(startIndex, endIndex + 1);
   const offsetY = startIndex * itemHeight;
@@ -49,10 +47,7 @@ export function VirtualList<T>({
       <div style={{ height: totalHeight, position: 'relative' }}>
         <div style={{ transform: `translateY(${offsetY}px)` }}>
           {visibleItems.map((item, i) => (
-            <div
-              key={startIndex + i}
-              style={{ height: itemHeight }}
-            >
+            <div key={startIndex + i} style={{ height: itemHeight }}>
               {renderItem(item, startIndex + i)}
             </div>
           ))}
@@ -84,7 +79,7 @@ export function VirtualGrid<T>({
   containerHeight,
   renderItem,
   gap = 0,
-  className = ''
+  className = '',
 }: VirtualGridProps<T>) {
   const [scrollTop, setScrollTop] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -100,10 +95,7 @@ export function VirtualGrid<T>({
 
   // Calculate visible range
   const startRow = Math.max(0, Math.floor(scrollTop / (itemHeight + gap)) - 1);
-  const endRow = Math.min(
-    rows - 1,
-    Math.ceil((scrollTop + containerHeight) / (itemHeight + gap)) + 1
-  );
+  const endRow = Math.min(rows - 1, Math.ceil((scrollTop + containerHeight) / (itemHeight + gap)) + 1);
 
   const visibleItems: Array<{ item: T; index: number; row: number; col: number }> = [];
   for (let row = startRow; row <= endRow; row++) {
@@ -114,7 +106,7 @@ export function VirtualGrid<T>({
           item: items[index],
           index,
           row,
-          col
+          col,
         });
       }
     }
@@ -136,7 +128,7 @@ export function VirtualGrid<T>({
               top: row * (itemHeight + gap),
               left: col * (itemWidth + gap),
               width: itemWidth,
-              height: itemHeight
+              height: itemHeight,
             }}
           >
             {renderItem(item, index)}
@@ -161,7 +153,7 @@ export function useVirtualScroll({
   itemCount,
   estimatedItemHeight,
   containerHeight,
-  overscan = 3
+  overscan = 3,
 }: UseVirtualScrollOptions) {
   const [scrollTop, setScrollTop] = useState(0);
   const [itemHeights, setItemHeights] = useState<Map<number, number>>(new Map());
@@ -174,17 +166,23 @@ export function useVirtualScroll({
     }
   }, []);
 
-  const getItemHeight = useCallback((index: number) => {
-    return itemHeights.get(index) ?? estimatedItemHeight;
-  }, [itemHeights, estimatedItemHeight]);
+  const getItemHeight = useCallback(
+    (index: number) => {
+      return itemHeights.get(index) ?? estimatedItemHeight;
+    },
+    [itemHeights, estimatedItemHeight],
+  );
 
-  const getItemOffset = useCallback((index: number) => {
-    let offset = 0;
-    for (let i = 0; i < index; i++) {
-      offset += getItemHeight(i);
-    }
-    return offset;
-  }, [getItemHeight]);
+  const getItemOffset = useCallback(
+    (index: number) => {
+      let offset = 0;
+      for (let i = 0; i < index; i++) {
+        offset += getItemHeight(i);
+      }
+      return offset;
+    },
+    [getItemHeight],
+  );
 
   const getTotalHeight = useCallback(() => {
     let height = 0;
@@ -198,30 +196,30 @@ export function useVirtualScroll({
   const findStartIndex = useCallback(() => {
     let low = 0;
     let high = itemCount - 1;
-    
+
     while (low <= high) {
       const mid = Math.floor((low + high) / 2);
       const offset = getItemOffset(mid);
-      
+
       if (offset < scrollTop) {
         low = mid + 1;
       } else {
         high = mid - 1;
       }
     }
-    
+
     return Math.max(0, low - overscan);
   }, [scrollTop, itemCount, getItemOffset, overscan]);
 
   const startIndex = findStartIndex();
   let endIndex = startIndex;
   let currentOffset = getItemOffset(startIndex);
-  
+
   while (currentOffset < scrollTop + containerHeight && endIndex < itemCount - 1) {
     endIndex++;
     currentOffset += getItemHeight(endIndex);
   }
-  
+
   endIndex = Math.min(itemCount - 1, endIndex + overscan);
 
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
@@ -234,7 +232,7 @@ export function useVirtualScroll({
     totalHeight: getTotalHeight(),
     offsetY: getItemOffset(startIndex),
     setItemHeight,
-    handleScroll
+    handleScroll,
   };
 }
 
@@ -256,30 +254,19 @@ export function DynamicVirtualList<T>({
   containerHeight,
   renderItem,
   overscan = 3,
-  className = ''
+  className = '',
 }: DynamicVirtualListProps<T>) {
-  const {
-    startIndex,
-    endIndex,
-    totalHeight,
-    offsetY,
-    setItemHeight,
-    handleScroll
-  } = useVirtualScroll({
+  const { startIndex, endIndex, totalHeight, offsetY, setItemHeight, handleScroll } = useVirtualScroll({
     itemCount: items.length,
     estimatedItemHeight,
     containerHeight,
-    overscan
+    overscan,
   });
 
   const visibleItems = items.slice(startIndex, endIndex + 1);
 
   return (
-    <div
-      className={`overflow-auto ${className}`}
-      style={{ height: containerHeight }}
-      onScroll={handleScroll}
-    >
+    <div className={`overflow-auto ${className}`} style={{ height: containerHeight }} onScroll={handleScroll}>
       <div style={{ height: totalHeight, position: 'relative' }}>
         <div style={{ transform: `translateY(${offsetY}px)` }}>
           {visibleItems.map((item, i) => {
@@ -290,12 +277,8 @@ export function DynamicVirtualList<T>({
                 setItemHeight(index, height);
               }
             };
-            
-            return (
-              <div key={index}>
-                {renderItem(item, index, measureRef)}
-              </div>
-            );
+
+            return <div key={index}>{renderItem(item, index, measureRef)}</div>;
           })}
         </div>
       </div>

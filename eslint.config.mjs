@@ -21,6 +21,44 @@ export default tseslint.config(
   },
   {
     files: ['backend/**/*.mjs', 'tools/**/*.mjs', 'electron/**/*.{mjs,cjs}'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        Buffer: 'readonly',
+        console: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        setTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearTimeout: 'readonly',
+        clearInterval: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        structuredClone: 'readonly',
+        fetch: 'readonly',
+        AbortSignal: 'readonly',
+        AbortController: 'readonly',
+        require: 'readonly',
+        module: 'readonly',
+        exports: 'readonly',
+        TextEncoder: 'readonly',
+        TextDecoder: 'readonly',
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      'no-useless-escape': 'warn',
+    },
+  },
+  {
+    files: ['frontend/__mocks__/**/*.js', 'mini-server.cjs'],
+    languageOptions: {
+      globals: {
+        module: 'readonly',
+        require: 'readonly',
+        console: 'readonly',
+      },
+    },
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
     },

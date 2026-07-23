@@ -1,5 +1,6 @@
 import { API_BASE_URL } from '../lib/api';
 import { getDeep } from '../lib/config-path';
+import type { PidioConfig } from '../types/app.types';
 
 const API = API_BASE_URL;
 
@@ -24,9 +25,16 @@ export function cornerPosition(xPct: number, yPct: number): string {
   return `${h} ${v}`;
 }
 
-export function nowPlayingText(config: any): string {
+export function nowPlayingText(config: PidioConfig): string {
   const audio = getDeep(config, 'input.audio', '');
-  const fallbackTitle = getDeep(config, 'spectrum.nowPlayingAutoFromFile', true) && audio ? String(audio).split(/[\\/]/).pop()?.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ') : '';
+  const fallbackTitle =
+    getDeep(config, 'spectrum.nowPlayingAutoFromFile', true) && audio
+      ? String(audio)
+          .split(/[\\/]/)
+          .pop()
+          ?.replace(/\.[^.]+$/, '')
+          .replace(/[_-]+/g, ' ')
+      : '';
   const title = getDeep(config, 'input.title', '') || fallbackTitle || 'Now Playing';
   return String(getDeep(config, 'spectrum.nowPlayingTemplate', '{title}'))
     .replaceAll('{title}', title)
@@ -47,7 +55,7 @@ export async function copyText(text: string): Promise<void> {
   await navigator.clipboard?.writeText(text).catch(() => {});
 }
 
-export function flattenModulePatch(value: any, prefix = ''): Array<[string, any]> {
+export function flattenModulePatch(value: unknown, prefix = ''): Array<[string, unknown]> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return [[prefix, value]];
   return Object.entries(value).flatMap(([k, v]) => flattenModulePatch(v, prefix ? `${prefix}.${k}` : k));
 }

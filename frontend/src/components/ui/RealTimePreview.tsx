@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Square, RefreshCw, Download, Settings, Maximize2 } from 'lucide-react';
 import { usePreviewStream, PreviewStreamOptions } from '../../hooks/usePreviewStream';
+import type { PidioConfig } from '../../types/app.types';
 
 interface RealTimePreviewProps {
-  config: any;
+  config: PidioConfig;
   onError?: (error: string) => void;
   className?: string;
 }
@@ -24,14 +25,7 @@ export function RealTimePreview({ config, onError, className = '' }: RealTimePre
   const [currentTime, setCurrentTime] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const {
-    isGenerating,
-    progress,
-    result,
-    error,
-    generatePreview,
-    cancelPreview,
-  } = usePreviewStream();
+  const { isGenerating, progress, result, error, generatePreview, cancelPreview } = usePreviewStream();
 
   useEffect(() => {
     if (error && onError) {
@@ -159,15 +153,10 @@ export function RealTimePreview({ config, onError, className = '' }: RealTimePre
                   <p className="text-sm mt-2">
                     {progress.progress}% - {formatTime(progress.currentTime)} / {formatTime(progress.duration)}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Elapsed: {(progress.elapsed / 1000).toFixed(1)}s
-                  </p>
+                  <p className="text-xs text-gray-400 mt-1">Elapsed: {(progress.elapsed / 1000).toFixed(1)}s</p>
                 </div>
               )}
-              <button
-                onClick={cancelPreview}
-                className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-sm"
-              >
+              <button onClick={cancelPreview} className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-sm">
                 Cancel
               </button>
             </div>
@@ -228,10 +217,7 @@ export function RealTimePreview({ config, onError, className = '' }: RealTimePre
                 <span>Quality: {result.quality}</span>
                 <span>Speed: {result.speed}</span>
               </div>
-              <button
-                onClick={handleDownload}
-                className="flex items-center gap-1 hover:text-white"
-              >
+              <button onClick={handleDownload} className="flex items-center gap-1 hover:text-white">
                 <Download className="w-4 h-4" />
                 Download
               </button>
@@ -261,25 +247,25 @@ export function RealTimePreview({ config, onError, className = '' }: RealTimePre
         {showSettings && (
           <div className="p-4 bg-gray-800 rounded space-y-3">
             <h3 className="font-semibold text-white mb-3">Preview Settings</h3>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Start At (seconds)</label>
                 <input
                   type="number"
                   value={previewOptions.startAt}
-                  onChange={(e) => setPreviewOptions({ ...previewOptions, startAt: Number(e.target.value) })}
+                  onChange={e => setPreviewOptions({ ...previewOptions, startAt: Number(e.target.value) })}
                   className="w-full px-3 py-2 bg-gray-700 rounded text-white"
                   min="0"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Duration (seconds)</label>
                 <input
                   type="number"
                   value={previewOptions.duration}
-                  onChange={(e) => setPreviewOptions({ ...previewOptions, duration: Number(e.target.value) })}
+                  onChange={e => setPreviewOptions({ ...previewOptions, duration: Number(e.target.value) })}
                   className="w-full px-3 py-2 bg-gray-700 rounded text-white"
                   min="1"
                   max="60"
@@ -290,7 +276,9 @@ export function RealTimePreview({ config, onError, className = '' }: RealTimePre
                 <label className="block text-sm text-gray-400 mb-1">Quality</label>
                 <select
                   value={previewOptions.quality}
-                  onChange={(e) => setPreviewOptions({ ...previewOptions, quality: e.target.value as any })}
+                  onChange={e =>
+                    setPreviewOptions({ ...previewOptions, quality: e.target.value as PreviewStreamOptions['quality'] })
+                  }
                   className="w-full px-3 py-2 bg-gray-700 rounded text-white"
                 >
                   <option value="draft">Draft (Fast)</option>
@@ -303,7 +291,9 @@ export function RealTimePreview({ config, onError, className = '' }: RealTimePre
                 <label className="block text-sm text-gray-400 mb-1">Mode</label>
                 <select
                   value={previewOptions.mode}
-                  onChange={(e) => setPreviewOptions({ ...previewOptions, mode: e.target.value as any })}
+                  onChange={e =>
+                    setPreviewOptions({ ...previewOptions, mode: e.target.value as PreviewStreamOptions['mode'] })
+                  }
                   className="w-full px-3 py-2 bg-gray-700 rounded text-white"
                 >
                   <option value="live">Live (Fast, Simple)</option>
@@ -315,7 +305,7 @@ export function RealTimePreview({ config, onError, className = '' }: RealTimePre
                 <label className="block text-sm text-gray-400 mb-1">FPS</label>
                 <select
                   value={previewOptions.fps}
-                  onChange={(e) => setPreviewOptions({ ...previewOptions, fps: Number(e.target.value) })}
+                  onChange={e => setPreviewOptions({ ...previewOptions, fps: Number(e.target.value) })}
                   className="w-full px-3 py-2 bg-gray-700 rounded text-white"
                 >
                   <option value="15">15 FPS (Fastest)</option>
@@ -329,7 +319,7 @@ export function RealTimePreview({ config, onError, className = '' }: RealTimePre
                 <label className="block text-sm text-gray-400 mb-1">Resolution</label>
                 <select
                   value={`${previewOptions.width}x${previewOptions.height}`}
-                  onChange={(e) => {
+                  onChange={e => {
                     const [w, h] = e.target.value.split('x').map(Number);
                     setPreviewOptions({ ...previewOptions, width: w, height: h });
                   }}
@@ -346,8 +336,8 @@ export function RealTimePreview({ config, onError, className = '' }: RealTimePre
 
             <div className="pt-3 border-t border-gray-700">
               <p className="text-xs text-gray-400">
-                <strong>Tip:</strong> Use "Live" mode with lower resolution and FPS for fastest previews. 
-                Use "Full" mode to see all effects and overlays as they will appear in final render.
+                <strong>Tip:</strong> Use "Live" mode with lower resolution and FPS for fastest previews. Use "Full"
+                mode to see all effects and overlays as they will appear in final render.
               </p>
             </div>
           </div>

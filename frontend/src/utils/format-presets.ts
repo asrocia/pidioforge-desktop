@@ -1,6 +1,7 @@
 import { getDeep } from '../lib/config-path';
+import type { PidioConfig } from '../types/app.types';
 
-export function detectTargetFormat(config: any): 'landscape' | 'vertical' | 'square' {
+export function detectTargetFormat(config: PidioConfig): 'landscape' | 'vertical' | 'square' {
   const width = Number(getDeep(config, 'target.width', 1280));
   const height = Number(getDeep(config, 'target.height', 720));
   if (height > width) return 'vertical';
@@ -8,7 +9,10 @@ export function detectTargetFormat(config: any): 'landscape' | 'vertical' | 'squ
   return 'landscape';
 }
 
-export function applySpectrumFormatPreset(updateConfig: (path: string, value: any) => void, format: 'landscape' | 'vertical' | 'square'): void {
+export function applySpectrumFormatPreset(
+  updateConfig: (path: string, value: unknown) => void,
+  format: 'landscape' | 'vertical' | 'square',
+): void {
   updateConfig('spectrum.enabled', true);
   updateConfig('spectrum.progressBar', true);
   updateConfig('spectrum.nowPlaying', true);
@@ -55,7 +59,10 @@ export function applySpectrumFormatPreset(updateConfig: (path: string, value: an
   }
 }
 
-export function applyOverlayFormatPreset(updateConfig: (path: string, value: any) => void, format: 'landscape' | 'vertical' | 'square'): void {
+export function applyOverlayFormatPreset(
+  updateConfig: (path: string, value: unknown) => void,
+  format: 'landscape' | 'vertical' | 'square',
+): void {
   updateConfig('overlay.enabled', true);
   updateConfig('overlay.timestamp', true);
   updateConfig('overlay.frameBorder', false);

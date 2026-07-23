@@ -1,103 +1,144 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useEffect, useState } from 'react';
-import { cn } from '../../lib/utils';
+import { cn } from '../../utils/cn';
+
+type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 interface Toast {
   id: string;
-  title: string;
-  message?: string;
-  variant: 'success' | 'error' | 'warn' | 'info';
+  type: ToastType;
+  message: string;
   duration?: number;
 }
 
-/* interface ToastContextValue {
-  toasts: Toast[];
-  addToast: (toast: Omit<Toast, 'id'>) => void;
-  removeToast: (id: string) => void;
-} */
+let toastId = 0;
+const listeners = new Set<(toast: Toast) => void>();
+let toastsEnabled = true;
 
-let toastListeners: Array<(toasts: Toast[]) => void> = [];
-let toastState: Toast[] = [];
+export function showToast(type: ToastType, message: string, duration = 5000) {
+  if (!toastsEnabled) return;
 
-function notify(toasts: Toast[]) {
-  toastState = toasts;
-  toastListeners.forEach(fn => fn(toasts));
+  const toast: Toast = {
+    id: `toast-${++toastId}`,
+    type,
+    message,
+    duration,
+  };
+  listeners.forEach(listener => listener(toast));
 }
 
-export function toast(options: Omit<Toast, 'id'>) {
-  const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  const newToast: Toast = { ...options, id, duration: options.duration ?? 4000 };
-  notify([...toastState, newToast]);
+export function toggleToasts() {
+  toastsEnabled = !toastsEnabled;
+  return toastsEnabled;
+}
 
-  if ((newToast.duration ?? 0) > 0) {
-    setTimeout(() => {
-      notify(toastState.filter(t => t.id !== id));
-    }, newToast.duration);
-  }
+export function areToastsEnabled() {
+  return toastsEnabled;
 }
 
 export function ToastContainer() {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [enabled, setEnabled] = useState(toastsEnabled);
 
   useEffect(() => {
-    toastListeners.push(setToasts);
+    const listener = (toast: Toast) => {
+      setToasts(prev => [...prev, toast]);
+      if (toast.duration) {
+        setTimeout(() => {
+          setToasts(prev => prev.filter(t => t.id !== toast.id));
+        }, toast.duration);
+      }
+    };
+    listeners.add(listener);
     return () => {
-      toastListeners = toastListeners.filter(fn => fn !== setToasts);
+      listeners.delete(listener);
     };
   }, []);
 
-  if (!toasts.length) return null;
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
+  const handleToggle = () => {
+    const newState = toggleToasts();
+    setEnabled(newState);
+    if (!newState) {
+      setToasts([]);
+    }
+  };
 
   return (
-    <div className="fixed top-3 right-3 z-[9999] flex flex-col gap-2 max-w-[320px]">
-      {toasts.map(t => (
+    <>
+      {/* Toggle Button */}
+      <button
+        onClick={handleToggle}
+        className={cn(
+          'fixed top-4 right-4 z-50 w-10 h-10 rounded-lg border-2 backdrop-blur-sm transition-all duration-300',
+          'flex items-center justify-center text-lg font-bold shadow-lg',
+          enabled
+            ? 'bg-green-900/90 border-green-500 text-green-100 hover:bg-green-800/90'
+            : 'bg-gray-900/90 border-gray-500 text-gray-400 hover:bg-gray-800/90',
+        )}
+        title={enabled ? 'Disable notifications' : 'Enable notifications'}
+      >
+        {enabled ? '🔔' : '🔕'}
+      </button>
+
+      {/* Toast Messages */}
+      {enabled && (
         <div
-          key={t.id}
-          className={cn(
-            'toast-enter rounded-[var(--radius-lg)] px-4 py-3 shadow-lg border backdrop-blur-sm',
-            'flex items-start gap-3 min-w-[240px]',
-            t.variant === 'success' && 'bg-[#0d1c16]/95 border-[#2dbb7f]/30 text-[#2dbb7f]',
-            t.variant === 'error' && 'bg-[#1a0f11]/95 border-[#e76d78]/30 text-[#e76d78]',
-            t.variant === 'warn' && 'bg-[#1a1509]/95 border-[#d9a65f]/30 text-[#d9a65f]',
-            t.variant === 'info' && 'bg-[#121821]/95 border-[#4f8ef7]/30 text-[#4f8ef7]',
-          )}
+          role="status"
+          aria-live="polite"
+          className="fixed top-16 right-4 z-50 flex flex-col gap-2 pointer-events-none"
         >
-          <div className="flex-1 min-w-0">
-            <p className="text-[12px] font-semibold leading-tight">{t.title}</p>
-            {t.message && <p className="text-[11px] opacity-80 mt-0.5 leading-snug">{t.message}</p>}
-          </div>
-          <button
-            onClick={() => notify(toastState.filter(x => x.id !== t.id))}
-            className="text-current opacity-50 hover:opacity-100 text-[14px] leading-none shrink-0 mt-0.5"
-          >
-            ×
-          </button>
+          {toasts.map(toast => (
+            <div
+              key={toast.id}
+              className={cn(
+                'pointer-events-auto min-w-[300px] max-w-[500px] p-4 rounded-lg shadow-lg border-2 backdrop-blur-sm',
+                'animate-[slideIn_0.3s_ease-out] transition-all duration-300',
+                toast.type === 'error' && 'bg-red-900/90 border-red-500 text-red-100',
+                toast.type === 'success' && 'bg-green-900/90 border-green-500 text-green-100',
+                toast.type === 'warning' && 'bg-yellow-900/90 border-yellow-500 text-yellow-100',
+                toast.type === 'info' && 'bg-blue-900/90 border-blue-500 text-blue-100',
+              )}
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 text-xl">
+                  {toast.type === 'error' && '❌'}
+                  {toast.type === 'success' && '✅'}
+                  {toast.type === 'warning' && '⚠️'}
+                  {toast.type === 'info' && 'ℹ️'}
+                </div>
+                <div className="flex-1 text-sm font-medium leading-relaxed">{toast.message}</div>
+                <button
+                  onClick={() => removeToast(toast.id)}
+                  className="flex-shrink-0 text-lg opacity-70 hover:opacity-100 transition-opacity"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
+      )}
+    </>
   );
 }
 
-/** Skeleton loading placeholder */
-export function Skeleton({ className, lines = 1 }: { className?: string; lines?: number }) {
-  return (
-    <div className={cn('flex flex-col gap-2', className)}>
-      {Array.from({ length: lines }).map((_, i) => (
-        <div
-          key={i}
-          className="skeleton rounded-[var(--radius-sm)] h-4"
-          style={{ width: i === lines - 1 && lines > 1 ? '66%' : '100%' }}
-        />
-      ))}
-    </div>
-  );
-}
+// Global error handler
+let globalErrorHandlerInstalled = false;
+export function setupGlobalErrorHandler() {
+  if (globalErrorHandlerInstalled) return;
+  globalErrorHandlerInstalled = true;
 
-/** Loading spinner inline */
-export function Spinner({ size = 14, className }: { size?: number; className?: string }) {
-  return (
-    <span
-      className={cn('spinner inline-block', className)}
-      style={{ width: size, height: size }}
-    />
-  );
+  window.addEventListener('unhandledrejection', event => {
+    console.error('Unhandled promise rejection:', event.reason);
+    showToast('error', `Error: ${event.reason?.message || event.reason || 'Unknown error'}`);
+  });
+
+  window.addEventListener('error', event => {
+    console.error('Global error:', event.error);
+    showToast('error', `Error: ${event.error?.message || event.message || 'Unknown error'}`);
+  });
 }

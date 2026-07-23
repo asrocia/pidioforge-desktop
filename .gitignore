@@ -46,3 +46,5 @@ patch_target_styles.py
 # Temp
 *.tmp
 electron/resources/bin/
+.test-packaged-data/
+backend/vendor/

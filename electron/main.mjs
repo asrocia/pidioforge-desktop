@@ -108,15 +108,15 @@ async function startApi() {
 
   apiProcess.stdout?.pipe(stdout);
   apiProcess.stderr?.pipe(stderr);
-  
+
   let processExited = false;
   let exitCode = null;
-  
+
   apiProcess.on('error', error => {
     console.error('Backend process spawn error:', error);
     stderr.write(`\nBackend spawn error: ${error.message}\n${error.stack}\n`);
   });
-  
+
   apiProcess.on('exit', (code, signal) => {
     processExited = true;
     exitCode = code;
@@ -133,11 +133,11 @@ async function startApi() {
     process?.kill();
     stdout.end();
     stderr.end();
-    
-    const errorMsg = processExited 
+
+    const errorMsg = processExited
       ? `Backend process exited with code ${exitCode}. Check logs in ${logDir}`
       : `Backend API unavailable on port ${apiPort}. Check logs in ${logDir}`;
-    
+
     throw new Error(errorMsg);
   }
 }
@@ -197,6 +197,18 @@ ipcMain.handle('pidioforge:pick-path', async (_event, options = {}) => {
     filters: kind === 'directory' ? undefined : filters,
   });
   return result.canceled ? '' : result.filePaths?.[0] || '';
+});
+
+ipcMain.handle('pidioforge:pick-paths', async (_event, options = {}) => {
+  const { kind = 'file', title, defaultPath, filters } = options;
+  const props = kind === 'directory' ? ['openDirectory', 'createDirectory'] : ['openFile', 'multiSelections'];
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: title || (kind === 'directory' ? 'Pilih folder' : 'Pilih file'),
+    defaultPath: defaultPath || undefined,
+    properties: props,
+    filters: kind === 'directory' ? undefined : filters,
+  });
+  return result.canceled ? [] : result.filePaths || [];
 });
 
 ipcMain.handle('pidioforge:reveal-path', async (_event, targetPath = '') => {

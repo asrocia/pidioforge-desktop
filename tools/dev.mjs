@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { spawn, execFileSync } from 'node:child_process';
 
 function run(name, cmd, args) {
   const p = spawn(cmd, args, { stdio: 'inherit' });
@@ -12,20 +12,28 @@ async function waitFor(url, timeoutMs = 30000) {
     try {
       const res = await fetch(url);
       if (res.ok) return;
-    } catch {}
+    } catch {
+      /* server not ready yet */
+    }
     await new Promise(resolve => setTimeout(resolve, 350));
   }
   throw new Error(`Timeout menunggu ${url}`);
 }
 
-const web = run('vite', process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', '1420', 'frontend']);
+execFileSync(process.execPath, ['tools/rebuild-sqlite-dev.mjs'], { stdio: 'inherit' });
+
+const web = run('vite', process.execPath, [
+  'node_modules/vite/bin/vite.js',
+  '--host',
+  '127.0.0.1',
+  '--port',
+  '1420',
+  'frontend',
+]);
 const api = run('api', process.execPath, ['backend/server.mjs']);
 
 try {
-  await Promise.all([
-    waitFor('http://127.0.0.1:1420'),
-    waitFor('http://127.0.0.1:8787/api/health'),
-  ]);
+  await Promise.all([waitFor('http://127.0.0.1:1420'), waitFor('http://127.0.0.1:8787/api/health')]);
   const electron = run('electron', process.execPath, ['node_modules/electron/cli.js', 'electron/main.mjs']);
   electron.on('exit', () => {
     if (!web.killed) web.kill('SIGTERM');

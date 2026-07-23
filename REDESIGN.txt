@@ -1,0 +1,100 @@
+BRIEF REDESIGN TOTAL — PidioForge Desktop
+
+TUJUAN
+Merombak seluruh UI aplikasi (Kontrol Preview, Layer Editor, Rendering Settings,
+Queue, Overlay, Seamless Looping, Bantuan) agar konsisten, rapi, dan profesional,
+mengikuti referensi visual pola OBS Studio (dockable panel, hierarki warna jelas,
+komponen modular).
+
+===================================================
+FASE 0 — FONDASI DESIGN SYSTEM (kerjakan sebelum menyentuh kode UI)
+===================================================
+1. Audit semua komponen UI unik yang sudah ada di aplikasi.
+2. Tetapkan design tokens:
+   - Palet warna: base panel, card, 1 warna aksen primary untuk semua CTA,
+     warna status (hijau=normal, kuning=warning, merah=error/aktif-rekam)
+   - Skala spacing tetap: 4 / 8 / 12 / 16 / 24 px
+   - Skala tipografi: judul section, label field, isi/nilai, caption
+   - Radius border & ketebalan garis konsisten
+3. Definisikan komponen dasar reusable (tulis di style guide, belum diimplementasi):
+   - FieldRow: label kiri fixed-width + input kanan, SATU field per baris
+     (jangan pernah 2-3 field sejajar dalam satu baris)
+   - SliderControl: warna isi hijau solid + label persentase di kanan
+   - CheckboxRow: spacing vertikal 8px antar item
+   - Callout: biru + ikon lampu = tips, oranye + ikon peringatan = warning
+   - PresetButtonGroup: grid tombol preset, ukuran seragam, ikon + label
+   - StatRow: kolom rata otomatis, angka besar bold + label kecil
+   - Card: padding 16px, radius 8px, judul bold + deskripsi (gaya panel Bantuan)
+
+===================================================
+FASE 1 — PERBAIKAN STRUKTURAL (bug-fix, prioritas tertinggi)
+===================================================
+4. Ganti SEMUA pola "3 field sejajar dalam 1 baris" (penyebab teks terpotong
+   di Rendering Settings, Seamless Looping, Overlay, Queue) menjadi FieldRow
+   satu-per-baris.
+5. Pastikan lebar minimum window/panel cukup agar tidak ada elemen terpotong
+   saat resize.
+CHECKPOINT: ambil ulang screenshot semua panel, pastikan tidak ada teks
+terpotong sebelum lanjut ke Fase 2.
+
+===================================================
+FASE 2 — BANGUN KOMPONEN REUSABLE
+===================================================
+6. Implementasikan semua komponen dari Fase 0 sebagai komponen kode reusable,
+   bukan styling manual per panel.
+7. Uji setiap komponen secara terisolasi di satu panel kecil sebelum dipakai
+   massal ke seluruh aplikasi.
+
+===================================================
+FASE 3 — TERAPKAN KE PANEL (urutan wajib, satu panel tuntas sebelum lanjut)
+===================================================
+8. Kontrol Preview + Layer Editor
+   - Ubah Layer Editor jadi list bergaya "Sources" (ikon show/hide + lock per
+     item), bukan tombol kotak sejajar.
+9. Rendering Settings
+   - Tampilkan hanya field penting (Resolusi, FPS, Bitrate, Codec) di layar
+     utama; sembunyikan Smart Optimization & Batch Processing di balik
+     tombol "Advanced Settings".
+10. Queue
+    - Terapkan StatRow untuk Total Job/Siaga/Memproses/Selesai/Gagal/Progress
+      dan untuk Beban CPU/Memori/Disk/Encoder.
+    - Terapkan PresetButtonGroup untuk AUTO OPTIMIZE/TURBO/ECO/Kualitas.
+11. Overlay
+    - Terapkan SliderControl secara konsisten ke semua slider (Opacity,
+      Vignette, Grain, Color Grading).
+12. Seamless Looping
+    - Perbaiki FieldRow di semua baris field.
+    - Pertahankan Visual Timeline Editor (drag marker Start/End) sebagai
+      elemen unggulan — jangan diubah, hanya disesuaikan warnanya ke token.
+13. Bantuan
+    - Rapikan spacing & Card mengikuti token baru; struktur kontennya sudah
+      baik, tidak perlu dirombak total.
+
+===================================================
+FASE 4 — HIERARKI WARNA & AKSI
+===================================================
+14. Satu warna aksen tetap untuk semua tombol CTA utama (Render, Mulai
+    Antrian, Buat Looping, dll) di SELURUH aplikasi — tidak boleh beda
+    warna antar panel.
+15. Terapkan warna status (aktif/nonaktif/warning/error) secara identik di
+    semua indikator: status bar, stat row, checkbox, badge.
+
+===================================================
+FASE 5 — QA & REVIEW AKHIR
+===================================================
+16. Review semua panel berurutan side-by-side, pastikan tombol/slider/
+    checkbox terlihat identik gayanya di mana pun muncul.
+17. Uji resize window di beberapa ukuran, pastikan tidak ada regresi
+    pemotongan teks.
+18. Uji dengan 1 pengguna baru: minta selesaikan alur pilih file → render,
+    catat titik kebingungan.
+
+===================================================
+ATURAN KERJA SELAMA EKSEKUSI
+===================================================
+- Jangan kerjakan banyak panel secara paralel; tuntaskan satu panel penuh
+  (termasuk QA) sebelum pindah ke panel berikutnya.
+- Setiap keputusan visual HARUS merujuk ke token Fase 0, bukan keputusan
+  ad-hoc per panel.
+- Jika dikerjakan lewat AI coding assistant, sertakan file style guide
+  Fase 0 ini di setiap prompt perombakan panel.
