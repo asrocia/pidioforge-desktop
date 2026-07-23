@@ -244,12 +244,11 @@ function overlayPosition(position = 'Kanan Atas', marginX = 20, marginY = 20, co
   const y = position.includes('Atas') ? safe.y : position.includes('Tengah') ? `(H-h)/2` : `H-h-${safe.y}`;
   return `${x}:${y}`;
 }
-function overlayPositionAnimated(position, marginX, marginY, config, animation, start, end, duration) {
+function overlayPositionAnimated(position, marginX, marginY, config, animation, start, _end, _duration) {
   const base = overlayPosition(position, marginX, marginY, config).split(':');
   const x = base[0],
     y = base[1];
   const s = Number(start || 0);
-  const e = Number(end || 0) > 0 ? Number(end) : duration;
   if (animation === 'slide-left') return [`if(lt(t,${s + 0.6}),W-(W-(${x}))*(t-${s})/0.6,${x})`, y];
   if (animation === 'slide-right') return [`if(lt(t,${s + 0.6}),-w+(${x}+w)*(t-${s})/0.6,${x})`, y];
   if (animation === 'pulse') return [x, `${y}+sin(t*6)*4`];
@@ -288,7 +287,7 @@ function parseNowPlayingText(config = {}, audioFile = '', job = {}) {
     .replaceAll('{album}', album)
     .replaceAll('{filename}', audioFile ? path.basename(audioFile) : '');
 }
-function spectrumOverlayPosition(config, width, height, spectrumHeight) {
+function spectrumOverlayPosition(config, _width, _height, _spectrumHeight) {
   const sp = config.spectrum || {};
   const marginX = Number(sp.marginX ?? 0);
   const marginY = Number(sp.marginY ?? 34);

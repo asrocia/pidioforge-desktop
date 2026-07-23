@@ -9,7 +9,7 @@ const processes = new Map();
 const loopJobs = new Map();
 const { runQueueLoop, requestStop } = createQueueRunner(processes);
 const httpUtils = createHttpUtils({ allowedOrigin: ALLOWED_ORIGIN, maxBodyBytes: MAX_BODY_BYTES });
-const { json, sendError } = httpUtils;
+const { json } = httpUtils;
 
 const ctx = {
   processes,
@@ -42,10 +42,10 @@ try {
     PIDIOFORGE_DATA_DIR: process.env.PIDIOFORGE_DATA_DIR,
     PIDIOFORGE_LOG_DIR: process.env.PIDIOFORGE_LOG_DIR,
   });
-  
+
   await initHistory();
   console.log('History database initialized successfully');
-  
+
   server.listen(PORT, '127.0.0.1', () => {
     console.log(`PidioForge Production API: http://127.0.0.1:${PORT}`);
     console.log('Backend server ready');
@@ -56,14 +56,14 @@ try {
   console.error('Error message:', error.message);
   console.error('Error code:', error.code);
   console.error('Error stack:', error.stack);
-  
+
   if (error.message?.includes('better-sqlite3') || error.code === 'ERR_DLOPEN_FAILED') {
     console.error('\n=== SQLite Native Module Error ===');
     console.error('This is likely a Node.js ABI version mismatch.');
     console.error('The better-sqlite3 module needs to be rebuilt for this Electron version.');
     console.error('Expected NODE_MODULE_VERSION:', process.versions.modules);
   }
-  
+
   process.exitCode = 1;
   process.exit(1);
 }

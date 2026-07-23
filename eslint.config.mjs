@@ -32,11 +32,35 @@ export default tseslint.config(
         setInterval: 'readonly',
         clearTimeout: 'readonly',
         clearInterval: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        structuredClone: 'readonly',
+        fetch: 'readonly',
+        AbortSignal: 'readonly',
+        AbortController: 'readonly',
+        require: 'readonly',
+        module: 'readonly',
+        exports: 'readonly',
+        TextEncoder: 'readonly',
+        TextDecoder: 'readonly',
       },
     },
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
       'no-useless-escape': 'warn',
+    },
+  },
+  {
+    files: ['frontend/__mocks__/**/*.js', 'mini-server.cjs'],
+    languageOptions: {
+      globals: {
+        module: 'readonly',
+        require: 'readonly',
+        console: 'readonly',
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
     },
   },
   {

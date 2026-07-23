@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { setDeep, getDeep } from '../../lib/config-path';
+import type { Stem } from '../../lib/stem-utils';
 
 const TEST_CONFIG = {
   branding: { layerOrder: 'bumper,particle,logo,cta,spectrum,lyrics,watermark,nowPlaying,timestamp,lowerThird' },
@@ -22,7 +23,7 @@ describe('AudioMixingPanel config logic', () => {
     it('adds stem immutably', () => {
       const newStem = { name: 'bass', file: 'C:/bass.wav', volume: 90, pan: 10, solo: false, mute: false };
       const updated = setDeep(TEST_CONFIG, 'audio.stems', [
-        ...(getDeep(TEST_CONFIG, 'audio.stems', []) as any[]),
+        ...(getDeep(TEST_CONFIG, 'audio.stems', []) as Stem[]),
         newStem,
       ]);
       const stems = getDeep(updated, 'audio.stems', []);
@@ -31,7 +32,7 @@ describe('AudioMixingPanel config logic', () => {
     });
 
     it('removes stem by index immutably', () => {
-      const stems = getDeep(TEST_CONFIG, 'audio.stems', []) as any[];
+      const stems = getDeep(TEST_CONFIG, 'audio.stems', []) as Stem[];
       const updated = setDeep(TEST_CONFIG, 'audio.stems', stems.slice(1));
       const newStems = getDeep(updated, 'audio.stems', []);
       expect(newStems).toHaveLength(1);
@@ -42,7 +43,7 @@ describe('AudioMixingPanel config logic', () => {
       const updated = setDeep(
         TEST_CONFIG,
         'audio.stems',
-        (getDeep(TEST_CONFIG, 'audio.stems', []) as any[]).map((s, i) => ({ ...s, solo: i === 0 })),
+        (getDeep(TEST_CONFIG, 'audio.stems', []) as Stem[]).map((s, i) => ({ ...s, solo: i === 0 })),
       );
       const stems = getDeep(updated, 'audio.stems', []);
       expect(stems[0].solo).toBe(true);
@@ -53,7 +54,7 @@ describe('AudioMixingPanel config logic', () => {
       const updated = setDeep(
         TEST_CONFIG,
         'audio.stems',
-        (getDeep(TEST_CONFIG, 'audio.stems', []) as any[]).map((s, i) => ({ ...s, mute: i === 1 })),
+        (getDeep(TEST_CONFIG, 'audio.stems', []) as Stem[]).map((s, i) => ({ ...s, mute: i === 1 })),
       );
       const stems = getDeep(updated, 'audio.stems', []);
       expect(stems[0].mute).toBe(false);
@@ -64,7 +65,7 @@ describe('AudioMixingPanel config logic', () => {
       const updated = setDeep(
         TEST_CONFIG,
         'audio.stems',
-        (getDeep(TEST_CONFIG, 'audio.stems', []) as any[]).map((s, i) => (i === 0 ? { ...s, volume: 70 } : s)),
+        (getDeep(TEST_CONFIG, 'audio.stems', []) as Stem[]).map((s, i) => (i === 0 ? { ...s, volume: 70 } : s)),
       );
       const stems = getDeep(updated, 'audio.stems', []);
       expect(stems[0].volume).toBe(70);

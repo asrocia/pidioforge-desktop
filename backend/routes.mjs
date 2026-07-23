@@ -46,12 +46,12 @@ import { previewConfig, previewDiagnostics, performanceStatus, performancePatch 
 import { scanDir, enrichValidation, pathInfo, streamMediaFile } from './media-scanner.mjs';
 import { renderJob } from './render-engine.mjs';
 import { generateThumbnails } from './thumbnail-engine.mjs';
-import { initHistory, recordRender, getHistory, getHistoryStats, clearHistory } from './history.mjs';
+import { getHistory, getHistoryStats, clearHistory } from './history.mjs';
 import { generateLivePreview, generateFullPreview, cleanupPreviews } from './preview-stream.mjs';
 
 export async function handleRequest(req, res, url, ctx) {
   const { processes, loopJobs, runQueueLoop, requestQueueStop } = ctx;
-  const { body, json, corsHeaders, sendError } = ctx.http;
+  const { body, json, corsHeaders } = ctx.http;
   let state = await loadState();
 
   try {
@@ -417,7 +417,7 @@ export async function handleRequest(req, res, url, ctx) {
       await saveState(state);
       return json(res, 200, { activeProjectId: id });
     }
-    if (req.method === 'POST' && url.pathname.match(/^\/api\/projects\/[^\/]+\/rename$/)) {
+    if (req.method === 'POST' && url.pathname.match(/^\/api\/projects\/[^/]+\/rename$/)) {
       const id = url.pathname.split('/')[3];
       const b = await body(req);
       const project = state.projects.find(p => p.id === id);
@@ -428,7 +428,7 @@ export async function handleRequest(req, res, url, ctx) {
       await saveState(state);
       return json(res, 200, project);
     }
-    if (req.method === 'POST' && url.pathname.match(/^\/api\/projects\/[^\/]+\/duplicate$/)) {
+    if (req.method === 'POST' && url.pathname.match(/^\/api\/projects\/[^/]+\/duplicate$/)) {
       const id = url.pathname.split('/')[3];
       const src = state.projects.find(p => p.id === id);
       if (!src) return json(res, 404, { error: 'project tidak ditemukan' });
@@ -444,7 +444,7 @@ export async function handleRequest(req, res, url, ctx) {
       await saveState(state);
       return json(res, 201, dup);
     }
-    if (req.method === 'POST' && url.pathname.match(/^\/api\/projects\/[^\/]+\/delete$/)) {
+    if (req.method === 'POST' && url.pathname.match(/^\/api\/projects\/[^/]+\/delete$/)) {
       const id = url.pathname.split('/')[3];
       if (state.projects.length <= 1) return json(res, 400, { error: 'tidak bisa hapus project terakhir' });
       const idx = state.projects.findIndex(p => p.id === id);
@@ -455,7 +455,7 @@ export async function handleRequest(req, res, url, ctx) {
       await saveState(state);
       return json(res, 200, { ok: true });
     }
-    if (req.method === 'GET' && url.pathname.match(/^\/api\/projects\/[^\/]+\/export$/)) {
+    if (req.method === 'GET' && url.pathname.match(/^\/api\/projects\/[^/]+\/export$/)) {
       const id = url.pathname.split('/')[3];
       const project = state.projects.find(p => p.id === id);
       if (!project) return json(res, 404, { error: 'project tidak ditemukan' });
@@ -518,7 +518,7 @@ export async function handleRequest(req, res, url, ctx) {
       await saveState(state);
       return json(res, 201, tpl);
     }
-    if (req.method === 'POST' && url.pathname.match(/^\/api\/templates\/[^\/]+\/apply$/)) {
+    if (req.method === 'POST' && url.pathname.match(/^\/api\/templates\/[^/]+\/apply$/)) {
       const id = url.pathname.split('/')[3];
       const tpl = (state.templates || []).find(t => t.id === id);
       if (!tpl) return json(res, 404, { error: 'template tidak ditemukan' });
@@ -527,7 +527,7 @@ export async function handleRequest(req, res, url, ctx) {
       await saveState(state);
       return json(res, 200, activeConfig(state));
     }
-    if (req.method === 'DELETE' && url.pathname.match(/^\/api\/templates\/[^\/]+$/)) {
+    if (req.method === 'DELETE' && url.pathname.match(/^\/api\/templates\/[^/]+$/)) {
       const id = url.pathname.split('/')[3];
       if (!state.templates) return json(res, 404, { error: 'template tidak ditemukan' });
       const idx = state.templates.findIndex(t => t.id === id);
@@ -1288,7 +1288,7 @@ export async function handleRequest(req, res, url, ctx) {
           onLog: line => logs.push(String(line).slice(0, 500)),
         });
         return json(res, 200, { ...result, logs: logs.slice(-20), progress: lastProgress });
-      } catch (e) {
+      } catch {
         return json(res, 500, { ok: false, error: 'Preview live gagal. Periksa log server.', logs });
       }
     }
@@ -1308,7 +1308,7 @@ export async function handleRequest(req, res, url, ctx) {
           onLog: line => logs.push(String(line).slice(0, 500)),
         });
         return json(res, 200, { ...result, logs: logs.slice(-20), progress: lastProgress });
-      } catch (e) {
+      } catch {
         return json(res, 500, { ok: false, error: 'Preview full gagal. Periksa log server.', logs });
       }
     }
@@ -1317,7 +1317,7 @@ export async function handleRequest(req, res, url, ctx) {
         const b = await body(req);
         const result = await cleanupPreviews(workspaceDir, Number(b.maxAge || 3600000));
         return json(res, 200, result);
-      } catch (e) {
+      } catch {
         return json(res, 500, { ok: false, error: 'Cleanup preview gagal.' });
       }
     }
@@ -1722,6 +1722,7 @@ export async function handleRequest(req, res, url, ctx) {
       const text = b.text || (b.lines || []).map(r => r.text || '').join(' ');
       if (!text.trim()) return json(res, 400, { error: 'Tidak ada teks untuk dideteksi.' });
       const arabic = /[؀-ۿ]/.test(text);
+      // eslint-disable-next-line no-irregular-whitespace
       const cjk = /[　-鿿가-힯]/.test(text);
       const latin = /[a-zA-Z]/.test(text);
       const indo =
@@ -1758,6 +1759,7 @@ export async function handleRequest(req, res, url, ctx) {
         .normalize('NFD')
         .replace(/\p{M}+/gu, '')
         .replace(/[؀-ۿ]+/g, m => `[${m}]`)
+        // eslint-disable-next-line no-irregular-whitespace
         .replace(/[　-鿿]+/g, m => `[${m}]`);
       return json(res, 200, {
         ok: true,

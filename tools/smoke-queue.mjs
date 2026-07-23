@@ -133,7 +133,7 @@ try {
   console.log(`Job in list: status=${found.status}`);
 
   // 4. Duplicate job
-  const dup = await api(`/api/jobs/${job.id}/duplicate`, {});
+  await api(`/api/jobs/${job.id}/duplicate`, {});
   const afterDup = await api('/api/jobs');
   if (afterDup.jobs.length < 2) throw new Error('Duplicate failed: job count did not increase');
   console.log(`Duplicate OK: ${afterDup.jobs.length} jobs`);

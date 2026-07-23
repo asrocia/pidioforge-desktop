@@ -256,7 +256,7 @@ export function buildAssDocument({
       const next = rows[i + 1]?.time;
       const end = Math.min(safeDuration, Math.max(start + 0.8, (Number(next) || start + 3) - 0.06));
       const durCs = Math.max(20, Math.round((end - start) * 100));
-      const text = lyricKaraoke ? `{\k${durCs}}${assEscape(row.text)}` : assEscape(row.text);
+      const text = lyricKaraoke ? `{\\k${durCs}}${assEscape(row.text)}` : assEscape(row.text);
       if (start < safeDuration) events.push(`Dialogue: 0,${assTime(start)},${assTime(end)},Lyrics,,0,0,0,,${text}`);
     });
   }
