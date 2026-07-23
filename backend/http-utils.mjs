@@ -5,12 +5,27 @@ export class HttpError extends Error {
   }
 }
 
+/**
+ * Sanitize an error before it reaches the client. Server errors (5xx) never
+ * expose the raw message/stack to the frontend — only a generic message,
+ * with the real error logged server-side for debugging. Client errors (4xx,
+ * e.g. HttpError, validation failures) keep their specific message since
+ * those are meant to guide the user.
+ */
+export function sanitizeErrorMessage(error, status = 500) {
+  if (status >= 500) {
+    console.error('Internal server error:', error);
+    return 'Terjadi kesalahan pada server. Periksa log untuk detail.';
+  }
+  return error?.message || String(error);
+}
+
 export function createHttpUtils({ allowedOrigin, maxBodyBytes }) {
   function corsHeaders(req = null) {
     const origin = req?.headers?.origin || allowedOrigin;
     const allowed = new Set([allowedOrigin, 'http://127.0.0.1:1420', 'http://localhost:1420', 'file://', 'null']);
     return {
-      'access-control-allow-origin': (allowed.has(origin) || origin === 'null' || !origin) ? '*' : allowedOrigin,
+      'access-control-allow-origin': allowed.has(origin) || origin === 'null' || !origin ? '*' : allowedOrigin,
       'access-control-allow-methods': 'GET,POST,PUT,DELETE,OPTIONS',
       'access-control-allow-headers': 'content-type',
     };
@@ -35,9 +50,17 @@ export function createHttpUtils({ allowedOrigin, maxBodyBytes }) {
     }
     const text = Buffer.concat(chunks).toString('utf8');
     if (!text) return {};
-    try { return JSON.parse(text); }
-    catch { throw new HttpError(400, 'JSON tidak valid'); }
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new HttpError(400, 'JSON tidak valid');
+    }
   }
 
-  return { body, corsHeaders, json, sendError };
+  function sendCaughtError(res, error) {
+    const status = Number(error?.status || 500);
+    return sendError(res, status, sanitizeErrorMessage(error, status));
+  }
+
+  return { body, corsHeaders, json, sendError, sendCaughtError };
 }

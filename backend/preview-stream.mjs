@@ -5,6 +5,7 @@ import { FFMPEG } from './bin-resolver.mjs';
 import { runCmd, ffprobeInfo } from './ffmpeg-utils.mjs';
 import { safeId } from './media-utils.mjs';
 import { previewConfig } from './preview-engine.mjs';
+import { buildGallerySlideshowFile } from './render-engine.mjs';
 
 /**
  * Generate a live preview stream with lower quality for real-time playback
@@ -30,59 +31,44 @@ export async function generateLivePreview(config, options = {}) {
 
   const id = safeId('live');
   const output = path.join(previewDir, `${id}.mp4`);
+  const patchedConfig = previewConfig(config, { preview: { width, height, fps, duration } });
+  const galleryVisual = await buildGallerySlideshowFile(patchedConfig, workspaceDir, { id: `${id}-gallery`, duration });
 
-  // Validate inputs
-  const visual = config.input?.visual;
+  const visual = galleryVisual || config.input?.visual;
   const audio = config.input?.audio;
 
-  if (!visual && !audio) {
-    throw new Error('No visual or audio input provided');
-  }
+  if (!visual && !audio) throw new Error('No visual or audio input provided');
 
-  // Get input info
   const visualInfo = visual ? await ffprobeInfo(visual) : null;
   const audioInfo = audio ? await ffprobeInfo(audio) : null;
+  onLog?.(`[LivePreview] input visual=${visual || '-'} audio=${audio || '-'} gallery=${galleryVisual ? 'on' : 'off'}`);
+  void visualInfo;
+  void audioInfo;
 
-  // Build FFmpeg command for live preview
   const args = ['-y'];
-
-  // Input handling with seeking
   if (visual) {
     args.push('-ss', String(startAt));
     args.push('-i', visual);
   }
-
   if (audio) {
     args.push('-ss', String(startAt));
     args.push('-i', audio);
   }
-
-  // Duration limit
   args.push('-t', String(duration));
-
-  // Video encoding - optimized for speed
   args.push('-c:v', 'libx264');
-  args.push('-preset', 'ultrafast'); // Fastest encoding
+  args.push('-preset', 'ultrafast');
   args.push('-crf', quality === 'draft' ? '28' : '23');
-  args.push('-r', String(fps)); // Lower FPS for speed
-  args.push('-s', `${width}x${height}`); // Lower resolution
-
-  // Audio encoding - simple copy or fast encode
+  args.push('-r', String(fps));
+  args.push('-s', `${width}x${height}`);
   if (audio) {
     args.push('-c:a', 'aac');
     args.push('-b:a', '128k');
     args.push('-ar', '44100');
   } else {
-    args.push('-an'); // No audio
+    args.push('-an');
   }
-
-  // Fast start for streaming
   args.push('-movflags', '+faststart');
-
-  // Pixel format
   args.push('-pix_fmt', 'yuv420p');
-
-  // Output
   args.push(output);
 
   onLog?.(`[LivePreview] Starting: ${width}x${height} @ ${fps}fps, ${duration}s from ${startAt}s`);
@@ -90,10 +76,8 @@ export async function generateLivePreview(config, options = {}) {
 
   const startTime = Date.now();
   let lastProgress = 0;
-
   const result = await runCmd(FFMPEG, args, {
-    onStderr: (line) => {
-      // Parse FFmpeg progress
+    onStderr: line => {
       const timeMatch = line.match(/time=(\d+):(\d+):(\d+\.\d+)/);
       if (timeMatch) {
         const hours = parseInt(timeMatch[1]);
@@ -101,28 +85,19 @@ export async function generateLivePreview(config, options = {}) {
         const secs = parseFloat(timeMatch[3]);
         const currentTime = hours * 3600 + mins * 60 + secs;
         const progress = Math.min(100, Math.round((currentTime / duration) * 100));
-        
         if (progress > lastProgress) {
           lastProgress = progress;
-          onProgress?.({
-            progress,
-            currentTime,
-            duration,
-            elapsed: Date.now() - startTime,
-          });
+          onProgress?.({ progress, currentTime, duration, elapsed: Date.now() - startTime });
         }
       }
       onLog?.(line);
     },
   });
 
-  if (!result.ok) {
-    throw new Error(`Live preview generation failed: ${result.stderr}`);
-  }
+  if (!result.ok) throw new Error(`Live preview generation failed: ${result.stderr}`);
 
   const elapsed = Date.now() - startTime;
   const speed = duration / (elapsed / 1000);
-
   return {
     id,
     output,
@@ -145,33 +120,29 @@ export async function generateLivePreview(config, options = {}) {
  * @returns {Promise<Object>} Preview info
  */
 export async function generateFullPreview(config, options = {}) {
-  const {
-    startAt = 0,
-    duration = 10,
-    workspaceDir,
-    onProgress,
-    onLog,
-  } = options;
+  const { startAt = 0, duration = 10, workspaceDir, onProgress, onLog } = options;
 
   const previewDir = path.join(workspaceDir, 'previews', 'full');
   await mkdir(previewDir, { recursive: true });
 
   const id = safeId('preview');
   const output = path.join(previewDir, `${id}.mp4`);
+  const galleryVisual = await buildGallerySlideshowFile(config, workspaceDir, { id: `${id}-gallery`, duration });
+  const visual = galleryVisual || config.input?.visual;
 
   // Note: buildFilterComplex is not exported from render-engine.mjs
   // Using simplified preview without complex filters
   const filterComplex = [];
 
-  onLog?.(`[FullPreview] Using simplified preview mode`);
+  onLog?.(`[FullPreview] Using simplified preview mode / gallery=${galleryVisual ? 'on' : 'off'}`);
 
   // Build FFmpeg command with full pipeline
   const args = ['-y'];
 
   // Inputs
-  if (config.input?.visual) {
+  if (visual) {
     args.push('-ss', String(startAt));
-    args.push('-i', config.input.visual);
+    args.push('-i', visual);
   }
 
   if (config.input?.audio) {
@@ -214,7 +185,7 @@ export async function generateFullPreview(config, options = {}) {
   let lastProgress = 0;
 
   const result = await runCmd(FFMPEG, args, {
-    onStderr: (line) => {
+    onStderr: line => {
       const timeMatch = line.match(/time=(\d+):(\d+):(\d+\.\d+)/);
       if (timeMatch) {
         const hours = parseInt(timeMatch[1]);
@@ -222,7 +193,7 @@ export async function generateFullPreview(config, options = {}) {
         const secs = parseFloat(timeMatch[3]);
         const currentTime = hours * 3600 + mins * 60 + secs;
         const progress = Math.min(100, Math.round((currentTime / duration) * 100));
-        
+
         if (progress > lastProgress) {
           lastProgress = progress;
           onProgress?.({

@@ -1,7 +1,7 @@
 /**
  * PidioForge Desktop - Design System
  * FASE 0: Design Tokens & Component Specifications
- * 
+ *
  * This file defines all design tokens and component patterns
  * to be used consistently across the entire application.
  */
@@ -10,34 +10,41 @@
 // COLOR PALETTE
 // ============================================
 export const colors = {
-  // Base Panel Colors
+  // Base Panel Colors (synced with styles.css)
   base: {
-    primary: '#1a1a1a',      // Main background
-    secondary: '#242424',    // Card/panel background
-    tertiary: '#2d2d2d',     // Elevated elements
-    border: '#3a3a3a',       // Border color
+    primary: '#0f1419', // --primary-bg
+    secondary: '#1a1f26', // --secondary-bg
+    tertiary: '#242b35', // --tertiary-bg
+    surface: '#2d3542', // --surface
+    surfaceHover: '#363e4d', // --surface-hover
+    border: 'rgba(255, 255, 255, 0.12)', // --border-medium
+    borderSubtle: 'rgba(255, 255, 255, 0.08)', // --border-subtle
+    borderStrong: 'rgba(255, 255, 255, 0.18)', // --border-strong
   },
-  
+
   // Single Accent Color for ALL CTAs
   accent: {
-    primary: '#3b82f6',      // Blue - ALL action buttons
+    primary: '#3b82f6', // Blue - ALL action buttons
     primaryHover: '#2563eb',
     primaryActive: '#1d4ed8',
   },
-  
-  // Status Colors (consistent across app)
+
+  // Status Colors (consistent across app, synced with styles.css)
   status: {
-    success: '#22c55e',      // Green - normal/success
-    warning: '#f59e0b',      // Orange - warning
-    error: '#ef4444',        // Red - error/recording
-    info: '#3b82f6',         // Blue - info
+    success: '#10b981', // Green - normal/success (--accent-success)
+    successHover: '#059669',
+    warning: '#f59e0b', // Orange - warning (--accent-warning)
+    warningHover: '#d97706',
+    error: '#ef4444', // Red - error/recording (--accent-danger)
+    errorHover: '#dc2626',
+    info: '#3b82f6', // Blue - info
   },
-  
-  // Text Colors
+
+  // Text Colors (synced with styles.css)
   text: {
-    primary: '#ffffff',
-    secondary: '#a3a3a3',
-    muted: '#737373',
+    primary: '#f0f4f8',
+    secondary: '#b8c5d6',
+    muted: '#7a8a9e',
     disabled: '#525252',
   },
 } as const;
@@ -64,7 +71,7 @@ export const typography = {
     lineHeight: '1.4',
     color: colors.text.primary,
   },
-  
+
   // Field Labels
   fieldLabel: {
     fontSize: '11px',
@@ -72,7 +79,7 @@ export const typography = {
     lineHeight: '1.4',
     color: colors.text.secondary,
   },
-  
+
   // Input/Value Text
   inputText: {
     fontSize: '11px',
@@ -80,7 +87,7 @@ export const typography = {
     lineHeight: '1.4',
     color: colors.text.primary,
   },
-  
+
   // Caption/Helper Text
   caption: {
     fontSize: '9px',
@@ -109,7 +116,7 @@ export const borders = {
 /**
  * FieldRow Component Spec
  * ONE field per row - NEVER 2-3 fields in one row
- * 
+ *
  * Structure:
  * [Label (fixed-width)] [Input (flex-1)]
  */
@@ -325,36 +332,49 @@ export const cardSpec = {
 export const buttonSpec = {
   // Primary CTA Button (ALL action buttons use this)
   primary: {
-    height: '28px',
-    padding: `0 ${spacing.lg}`,
+    minHeight: '38px',
+    padding: `${spacing.sm} ${spacing.lg}`,
     borderRadius: borders.radius.md,
     backgroundColor: colors.accent.primary,
     color: colors.text.primary,
-    fontSize: '11px',
-    fontWeight: '600',
-    border: 'none',
+    fontSize: '13px',
+    fontWeight: '700',
+    border: `${borders.width} solid ${colors.accent.primaryHover}`,
     cursor: 'pointer',
     transition: 'all 0.2s',
   },
-  
+
   // Small Button
   small: {
-    height: '24px',
-    padding: `0 ${spacing.md}`,
+    minHeight: '28px',
+    padding: `${spacing.xs} ${spacing.md}`,
     borderRadius: borders.radius.md,
-    fontSize: '10px',
+    fontSize: '11px',
   },
-  
+
   // Secondary Button
   secondary: {
-    height: '28px',
-    padding: `0 ${spacing.lg}`,
+    minHeight: '38px',
+    padding: `${spacing.sm} ${spacing.lg}`,
     borderRadius: borders.radius.md,
-    backgroundColor: colors.base.tertiary,
+    backgroundColor: colors.base.surface,
     color: colors.text.primary,
-    fontSize: '11px',
+    fontSize: '13px',
     fontWeight: '600',
     border: `${borders.width} solid ${colors.base.border}`,
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+
+  danger: {
+    minHeight: '38px',
+    padding: `${spacing.sm} ${spacing.lg}`,
+    borderRadius: borders.radius.md,
+    backgroundColor: colors.status.error,
+    color: colors.text.primary,
+    fontSize: '13px',
+    fontWeight: '700',
+    border: `${borders.width} solid ${colors.status.errorHover}`,
     cursor: 'pointer',
     transition: 'all 0.2s',
   },

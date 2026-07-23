@@ -61,8 +61,17 @@ await cp(path.join(root, 'backend'), backendOut, {
   recursive: true,
   filter: src => {
     const rel = path.relative(path.join(root, 'backend'), src);
+    if (!rel) return true; // root dir itself
     const first = rel.split(path.sep)[0];
-    return first !== '.data' && first !== 'ffmpeg-8.1.1-essentials_build' && first !== 'ffmpeg' && first !== 'bin';
+    // Exclude non-runtime directories
+    if (first === '.data' || first === 'ffmpeg-8.1.1-essentials_build' || first === 'ffmpeg' || first === 'bin')
+      return false;
+    // Exclude non-runtime file patterns
+    const base = path.basename(src);
+    if (base.includes('.test.') || base.includes('.spec.') || base === '__tests__' || base === '__mocks__')
+      return false;
+    if (base.endsWith('.md') && base !== 'package.json') return false;
+    return true;
   },
 });
 await copyBackendDependencies();

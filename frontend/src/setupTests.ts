@@ -16,26 +16,31 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 // Mock IntersectionObserver
-global.IntersectionObserver = class IntersectionObserver {
-  constructor() {}
+class MockIntersectionObserver {
   disconnect() {}
   observe() {}
   takeRecords() {
     return [];
   }
   unobserve() {}
-} as any;
+}
+globalThis.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
 // Mock ResizeObserver
-global.ResizeObserver = class ResizeObserver {
-  constructor() {}
+class MockResizeObserver {
   disconnect() {}
   observe() {}
   unobserve() {}
-} as any;
+}
+globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
 
 // Mock requestIdleCallback
-(global as any).requestIdleCallback = (cb: IdleRequestCallback) => {
+type IdleApi = typeof globalThis & {
+  requestIdleCallback: (cb: IdleRequestCallback) => number;
+  cancelIdleCallback: (id: number) => void;
+};
+const idleGlobal = globalThis as IdleApi;
+idleGlobal.requestIdleCallback = (cb: IdleRequestCallback) => {
   return setTimeout(() => {
     cb({
       didTimeout: false,
@@ -44,7 +49,7 @@ global.ResizeObserver = class ResizeObserver {
   }, 1);
 };
 
-(global as any).cancelIdleCallback = (id: number) => {
+idleGlobal.cancelIdleCallback = (id: number) => {
   clearTimeout(id);
 };
 
@@ -61,11 +66,11 @@ Object.defineProperty(performance, 'memory', {
 // Suppress console errors in tests
 const originalError = console.error;
 beforeAll(() => {
-  console.error = (...args: any[]) => {
+  console.error = (...args: unknown[]) => {
     if (
       typeof args[0] === 'string' &&
       (args[0].includes('Warning: ReactDOM.render') ||
-       args[0].includes('Not implemented: HTMLFormElement.prototype.submit'))
+        args[0].includes('Not implemented: HTMLFormElement.prototype.submit'))
     ) {
       return;
     }

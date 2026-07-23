@@ -59,22 +59,24 @@ export function DialogProvider() {
 
   if (!dialog) return null;
 
+  const currentDialog = dialog;
+
   function promptValue(): string {
-    return inputRef.current?.value ?? dialog.defaultValue ?? '';
+    return inputRef.current?.value ?? currentDialog.defaultValue ?? '';
   }
 
   function handleClose(value: DialogValue) {
-    dialog.resolve(value);
+    currentDialog.resolve(value);
     setDialog(null);
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Escape') {
-      handleClose(dialog.type === 'prompt' ? null : false);
+      handleClose(currentDialog.type === 'prompt' ? null : false);
       return;
     }
     if (e.key === 'Enter') {
-      handleClose(dialog.type === 'prompt' ? promptValue() : true);
+      handleClose(currentDialog.type === 'prompt' ? promptValue() : true);
     }
   }
 

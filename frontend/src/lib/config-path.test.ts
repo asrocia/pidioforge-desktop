@@ -60,4 +60,23 @@ describe('setDeep', () => {
     const result = setDeep(null, 'x.y', 'z');
     expect(result.x.y).toBe('z');
   });
+
+  it('stores gallery arrays and flags immutably', () => {
+    const result = setDeep(obj, 'spectrum.gallery.images', ['a.jpg', 'b.mp4']);
+    expect(result.spectrum.gallery.images).toEqual(['a.jpg', 'b.mp4']);
+    expect(obj).not.toHaveProperty('spectrum');
+
+    const next = setDeep(result, 'spectrum.gallery.kenBurns', true);
+    expect(next.spectrum.gallery.images).toEqual(['a.jpg', 'b.mp4']);
+    expect(next.spectrum.gallery.kenBurns).toBe(true);
+  });
+});
+
+describe('gallery getDeep', () => {
+  it('reads gallery arrays and defaults cleanly', () => {
+    const obj = { spectrum: { gallery: { images: ['one.png'], enabled: true } } };
+    expect(getDeep(obj, 'spectrum.gallery.images', [])).toEqual(['one.png']);
+    expect(getDeep(obj, 'spectrum.gallery.enabled', false)).toBe(true);
+    expect(getDeep(obj, 'spectrum.gallery.kenBurnsMode', 'random')).toBe('random');
+  });
 });
