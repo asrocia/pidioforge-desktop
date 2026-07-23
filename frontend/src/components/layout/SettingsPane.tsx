@@ -29,9 +29,9 @@ export function SettingsPane({ title, collapsed, onToggle, children }: SettingsP
           </svg>
         </button>
       </div>
-      {/* Scrollable body with premium scrollbar */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin px-2 min-w-0">
-        <div className="min-w-0 w-full">{children}</div>
+      {/* Flex body without internal scrollbar (scroll handled by children) */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <div className="min-w-0 w-full h-full flex flex-col">{children}</div>
       </div>
     </aside>
   );
